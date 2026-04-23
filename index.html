@@ -466,18 +466,19 @@ function buildDayCard(ds,label,isToday){
     const startT=info.customStart||shift.startTime||'';
     const imgSrc=shift.imageUrl||(IMAGE_BASE+shift.name+'.jpeg');
     body=`<div class="dc-body">
-      <div class="shift-num">${shift.name}</div>
-      ${shift.specialNote?`<div class="s-note">📋 ${shift.specialNote}</div>`:''}
-      <div class="ti" style="margin-bottom:10px">
-        <div class="ti-label">⏱ 上班時間</div>
-        <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--acc);line-height:1.1">${fmt(startT)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px">
+        <div class="shift-num" style="margin-bottom:0;line-height:1">${shift.name}</div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">⏱ 上班時間</div>
+          <div style="font-size:30px;font-weight:900;font-family:'DM Mono',monospace;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3)">${fmt(startT)}</div>
+        </div>
       </div>
+      ${shift.specialNote?`<div class="s-note" style="margin-bottom:10px">📋 ${shift.specialNote}</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${board?`<div class="ti" style="flex:1"><div class="ti-label">🚉 上班搭車</div><div class="ti-val hi">${board}</div></div>`:''}
         ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
-      ${(shift.depTrain||shift.arrTrain)?`<div class="ref-row"><div class="ref-item">首班車次 <span>${shift.depTrain||'—'}</span></div><div class="ref-item">末班車次 <span>${shift.arrTrain||'—'}</span></div></div>`:''}
-      ${info.note?`<div class="day-note">📝 ${info.note}</div>`:''}
+      ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${info.note}</div>`:''}
       <img class="shift-img" src="${imgSrc}" alt="${shift.name}" onerror="this.style.display='none'"></div>`;
   }else if(info.type==='standby'){
     body=`<div class="no-work"><div class="no-work-icon">🟡</div><div class="no-work-label">備勤待命</div>
