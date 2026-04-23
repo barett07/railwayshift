@@ -547,15 +547,24 @@ function openExModal(ds){
       <div class="f2">
         <div class="fg">
           <label class="fl">⏱ 上班時間</label>
-          <input class="fi" type="time" id="exStart" value="${cStart}">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="fi" type="time" id="exStart" value="${cStart}" style="flex:1">
+            <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('exStart').value=''">✕</button>
+          </div>
         </div>
         <div class="fg">
           <label class="fl">🚉 上班搭車</label>
-          <input class="fi" type="time" id="exBoard" value="${cBoard}">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="fi" type="time" id="exBoard" value="${cBoard}" style="flex:1">
+            <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('exBoard').value=''">✕</button>
+          </div>
         </div>
         <div class="fg">
           <label class="fl">🏠 下班搭車</label>
-          <input class="fi" type="time" id="exAlight" value="${cAlight}">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="fi" type="time" id="exAlight" value="${cAlight}" style="flex:1">
+            <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('exAlight').value=''">✕</button>
+          </div>
         </div>
       </div>
     </div>
@@ -830,19 +839,35 @@ function openEditShift(id){
     <div class="f2">
       <div class="fg"><label class="fl">班號 *</label><input class="fi" id="en" value="${s?.name||''}" placeholder="如 501、509AV"></div>
       <div class="fg"><label class="fl">特定行駛說明</label><input class="fi" id="esn" value="${s?.specialNote||''}" placeholder="如 日停、三駛"></div>
-      <div class="fg"><label class="fl">上班時間（自 Excel）</label><input class="fi" type="time" id="est" value="${s?.startTime||''}"></div>
-      <div class="fg"><label class="fl">下班時間（自 Excel）</label><input class="fi" type="time" id="eet" value="${s?.endTime||''}"></div>
+      <div class="fg"><label class="fl">上班時間（自 Excel）</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <input class="fi" type="time" id="est" value="${s?.startTime||''}" style="flex:1">
+          <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('est').value=''">✕</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">下班時間（自 Excel）</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <input class="fi" type="time" id="eet" value="${s?.endTime||''}" style="flex:1">
+          <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('eet').value=''">✕</button>
+        </div>
+      </div>
     </div>
     <div class="sep"></div>
     <div class="f2">
       <div class="fg">
         <label class="fl">🚉 上班搭車時間</label>
-        <input class="fi" type="time" id="ebt" value="${s?.boardTime||''}">
+        <div style="display:flex;gap:5px;align-items:center">
+          <input class="fi" type="time" id="ebt" value="${s?.boardTime||''}" style="flex:1">
+          <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('ebt').value=''">✕</button>
+        </div>
         <div class="fhint">你去上班所搭的那班車時刻</div>
       </div>
       <div class="fg">
         <label class="fl">🏠 下班搭車時間</label>
-        <input class="fi" type="time" id="eat" value="${s?.alightTime||''}">
+        <div style="display:flex;gap:5px;align-items:center">
+          <input class="fi" type="time" id="eat" value="${s?.alightTime||''}" style="flex:1">
+          <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('eat').value=''">✕</button>
+        </div>
         <div class="fhint">你下班回家所搭的那班車時刻</div>
       </div>
     </div>
