@@ -471,7 +471,7 @@ function buildDayCard(ds,label,isToday){
       ${(shift.depTrain||shift.arrTrain)?`<div class="ref-row"><div class="ref-item">首班車次 <span>${shift.depTrain||'—'}</span></div><div class="ref-item">末班車次 <span>${shift.arrTrain||'—'}</span></div></div>`:''}
       ${info.note?`<div class="day-note">📝 ${info.note}</div>`:''}
       <button class="img-toggle" onclick="toggleImg('${imgKey}')"><span>${expanded?'▲':'▼'}</span><span>${expanded?'收起':'展開'}工作內容圖</span></button>
-      ${expanded?`<img class="shift-img" src="${imgSrc}" alt="${shift.name}" onerror="this.style.display='none'">`:''}</div>`;
+      ${expanded?`<img class="shift-img" src="${imgSrc}" alt="${shift.name}" onerror="if(this.src.endsWith('.jpg')){this.src=this.src.replace('.jpg','.jpeg');}else{this.style.display='none';}">`:''}</div>`;
   }else if(info.type==='standby'){
     body=`<div class="no-work"><div class="no-work-icon">🟡</div><div class="no-work-label">備勤待命</div>
       <div class="no-work-sub">${info.shiftId?'班號：'+info.shiftId:'今日尚未輸入班別'}</div>
