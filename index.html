@@ -247,11 +247,13 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   <div class="main">
     <!-- HOME -->
     <div id="page-home" class="page active">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-        <div>
-          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em">今日</div>
-          <div id="todayDisp" style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace;margin-top:2px">—</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <button class="cal-nav-btn" onclick="homeMove(-1)">‹</button>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em" id="homeLabel">今日 / 明日</div>
+          <div id="todayDisp" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;margin-top:2px">—</div>
         </div>
+        <button class="cal-nav-btn" onclick="homeMove(1)">›</button>
       </div>
       <div class="day-grid" id="dayCards"></div>
     </div>
@@ -335,7 +337,7 @@ const BUILTIN = [{"id":"501","name":"501","startTime":"07:27","endTime":"20:01",
 let db = null;
 let ST = { shifts:[], segments:[], exceptions:{} };
 let calY=new Date().getFullYear(), calM=new Date().getMonth()+1;
-let shiftFilter='all', parsedXLSX=null;
+let shiftFilter='all', parsedXLSX=null, homeOffset=0;
 let _editSegId='', _editCycle=[];
 
 // ══════════════════════════════════════════════
@@ -436,9 +438,19 @@ const TC={work:'work',off:'off',rest:'rest',leave:'leave',standby:'standby',unkn
 // HOME
 // ══════════════════════════════════════════════
 function renderHome(){
-  const today=todayStr(),tom=addDays(today,1);
-  document.getElementById('todayDisp').textContent=fmtDate(today);
-  document.getElementById('dayCards').innerHTML=buildDayCard(today,'今日',true)+buildDayCard(tom,'明日',false);
+  const today=todayStr();
+  const d1=addDays(today,homeOffset);
+  const d2=addDays(today,homeOffset+1);
+  const isBase=homeOffset===0;
+  const label1=isBase?'今日':(homeOffset===1?'明日':fmtDate(d1));
+  const label2=isBase?'明日':(homeOffset===1?'後日':fmtDate(d2));
+  document.getElementById('homeLabel').textContent=`${d1} ／ ${d2}`;
+  document.getElementById('todayDisp').textContent=isBase?'今日 ／ 明日':'';
+  document.getElementById('dayCards').innerHTML=buildDayCard(d1,label1,d1===today)+buildDayCard(d2,label2,d2===today);
+}
+function homeMove(dir){
+  homeOffset+=dir;
+  renderHome();
 }
 
 function buildDayCard(ds,label,isToday){
@@ -456,17 +468,13 @@ function buildDayCard(ds,label,isToday){
     body=`<div class="dc-body">
       <div class="shift-num">${shift.name}</div>
       ${shift.specialNote?`<div class="s-note">📋 ${shift.specialNote}</div>`:''}
-      <div class="tgrid">
-        <div class="ti"><div class="ti-label">⏱ 上班時間</div><div class="ti-val hi">${fmt(startT)}</div></div>
-        <div class="ti"><div class="ti-label">🏁 下班時間</div><div class="ti-val">${fmt(shift.endTime)}</div></div>
-        <div class="ti">
-          <div class="ti-label">🚉 上班搭車</div>
-          <div class="ti-val hi ${board?'':'empty'}">${board||'未設定'}</div>
-        </div>
-        <div class="ti">
-          <div class="ti-label">🏠 下班搭車</div>
-          <div class="ti-val ${alight?'':'empty'}">${alight||'未設定'}</div>
-        </div>
+      <div class="ti" style="margin-bottom:10px">
+        <div class="ti-label">⏱ 上班時間</div>
+        <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--acc);line-height:1.1">${fmt(startT)}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${board?`<div class="ti" style="flex:1"><div class="ti-label">🚉 上班搭車</div><div class="ti-val hi">${board}</div></div>`:''}
+        ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
       ${(shift.depTrain||shift.arrTrain)?`<div class="ref-row"><div class="ref-item">首班車次 <span>${shift.depTrain||'—'}</span></div><div class="ref-item">末班車次 <span>${shift.arrTrain||'—'}</span></div></div>`:''}
       ${info.note?`<div class="day-note">📝 ${info.note}</div>`:''}
@@ -580,9 +588,9 @@ function onExShiftChange(){
     const st=document.getElementById('exStart');
     const bd=document.getElementById('exBoard');
     const al=document.getElementById('exAlight');
-    if(st&&!st.value) st.value=s.startTime||'';
-    if(bd&&!bd.value) bd.value=s.boardTime||'';
-    if(al&&!al.value) al.value=s.alightTime||'';
+    if(st) st.value=s.startTime||'';
+    if(bd) bd.value=s.boardTime||'';
+    if(al) al.value=s.alightTime||'';
   }
 }
 function saveEx(ds){
@@ -616,7 +624,7 @@ function renderCal(){
     const ds=`${calY}-${p2(calM)}-${p2(d)}`;
     const info=getDayInfo(ds), sh=info.shiftId?getShift(info.shiftId):null;
     const cls=TC[info.type]||'', board=sh?(sh.boardTime||''):'';
-    h+=`<div class="cal-cell ${cls} ${ds===today?'today':''}">
+    h+=`<div class="cal-cell ${cls} ${ds===today?'today':''}" onclick="goToDate('${ds}')" style="cursor:pointer">
       ${info.isEx?'<div class="cc-ex"></div>':''}
       <div class="cc-day">${d}</div>
       <div class="cc-type">${TL[info.type]||''}</div>
@@ -627,6 +635,11 @@ function renderCal(){
   document.getElementById('calGrid').innerHTML=h;
 }
 function calMove(dir){ calM+=dir; if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;} renderCal(); }
+function goToDate(ds){
+  const today=todayStr();
+  homeOffset=diffDays(today,ds);
+  showPage('home');
+}
 
 // ══════════════════════════════════════════════
 // SCHEDULE SETTINGS
