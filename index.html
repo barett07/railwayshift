@@ -322,7 +322,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 // ══════════════════════════════════════════════
 // ⚙️  CONFIG — 填入你的 Supabase 設定
 // ══════════════════════════════════════════════
-const SUPABASE_URL     = 'https://oqyjixphmdrhcmomskth.supabase.co/rest/v1/';
+const SUPABASE_URL     = 'https://oqyjixphmdrhcmomskth.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qqov-1r2kMV5FXSp23_JCg_M8X8_uc9';
 const IMAGE_BASE       = 'images/';   // GitHub repo 圖片資料夾
 
@@ -355,31 +355,33 @@ function setStatus(on){
   document.getElementById('statusTxt').textContent=on?'已連線':'本地模式';
 }
 async function loadRemote(){
-  const [{data:sh},{data:seg},{data:ex}]=await Promise.all([
-    db.from('shifts').select('*'),
-    db.from('segments').select('*').order('start_date'),
-    db.from('exceptions').select('*'),
-  ]);
-  ST.shifts=(sh&&sh.length)?sh:[...BUILTIN];
-  ST.segments=(seg||[]).map(s=>({...s,cycle:s.cycle||[],standbyData:s.standby_data||{}}));
-  ST.exceptions={};
-  (ex||[]).forEach(e=>ST.exceptions[e.date_str]=e.data);
+  const {data,error}=await db.from('app_data').select('*');
+  if(error){console.error('loadRemote error:',error);throw error;}
+  const map={};
+  (data||[]).forEach(r=>map[r.key]=r.value);
+  ST.shifts=(map.shifts&&map.shifts.length)?map.shifts:[...BUILTIN];
+  ST.segments=map.segments||[];
+  ST.exceptions=map.exceptions||{};
 }
-async function pushShifts(){ saveLocal(); if(!db)return; try{await db.from('shifts').upsert(ST.shifts,{onConflict:'id'});}catch(e){console.error(e);} }
+async function dbSet(key,value){
+  const {error}=await db.from('app_data').upsert({key,value},{onConflict:'key'});
+  if(error) console.error('dbSet error:',key,error);
+}
+async function pushShifts(){
+  saveLocal();
+  if(!db)return;
+  try{ await dbSet('shifts',ST.shifts); }catch(e){console.error(e);}
+}
 async function pushSegments(){
-  saveLocal(); if(!db)return;
-  try{
-    const rows=ST.segments.map(s=>({id:s.id,type:s.type,start_date:s.startDate,end_date:s.endDate||null,cycle:s.cycle||[],standby_data:s.standbyData||{}}));
-    await db.from('segments').upsert(rows,{onConflict:'id'});
-  }catch(e){console.error(e);}
+  saveLocal();
+  if(!db)return;
+  try{ await dbSet('segments',ST.segments); }catch(e){console.error(e);}
 }
 async function pushException(ds,data){
   if(data) ST.exceptions[ds]=data; else delete ST.exceptions[ds];
-  saveLocal(); if(!db)return;
-  try{
-    if(data) await db.from('exceptions').upsert({date_str:ds,data},{onConflict:'date_str'});
-    else await db.from('exceptions').delete().eq('date_str',ds);
-  }catch(e){console.error(e);}
+  saveLocal();
+  if(!db)return;
+  try{ await dbSet('exceptions',ST.exceptions); }catch(e){console.error(e);}
 }
 function loadLocal(){
   setStatus(false);
