@@ -679,17 +679,45 @@ function buildSegCard(seg){
     <div class="seg-head">
       <span class="seg-badge ${seg.type}">${isN?'輪班循環':'備勤月份'}</span>
       <span class="seg-dates">${seg.startDate} ～ ${seg.endDate||'持續中'}</span>
-      <div style="margin-left:auto"><button class="ic-btn del" onclick="deleteSeg('${seg.id}')">🗑</button></div>
+      <div style="margin-left:auto;display:flex;gap:5px">
+        <button class="ic-btn" title="編輯日期" onclick="openEditSegDates('${seg.id}')">✏️</button>
+        <button class="ic-btn del" title="刪除" onclick="deleteSeg('${seg.id}')">🗑</button>
+      </div>
     </div>
     <div class="seg-body">${bodyHtml}</div>
   </div>`;
 }
+function segDateBody(startVal, endVal){
+  return `<div class="fg"><label class="fl">開始日期</label>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input class="fi" type="date" id="segS" value="${startVal}" style="flex:1">
+        <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('segS').value=''">✕</button>
+      </div></div>
+    <div class="fg"><label class="fl">結束日期（留空＝持續）</label>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input class="fi" type="date" id="segE" value="${endVal}" style="flex:1">
+        <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('segE').value=''">✕</button>
+      </div></div>`;
+}
 function openAddSeg(type){
-  setModal(type==='normal'?'新增輪班循環段':'新增備勤月份',`
-    <div class="fg"><label class="fl">開始日期</label><input class="fi" type="date" id="segS" value="${todayStr()}"></div>
-    <div class="fg"><label class="fl">結束日期（留空＝持續）</label><input class="fi" type="date" id="segE"></div>`,
+  setModal(type==='normal'?'新增輪班循環段':'新增備勤月份',
+    segDateBody(todayStr(),''),
     [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'新增',cls:'btn-primary',fn:`addSeg('${type}')`}]
   );
+}
+function openEditSegDates(id){
+  const seg=ST.segments.find(s=>s.id===id); if(!seg)return;
+  setModal('編輯段落日期',
+    segDateBody(seg.startDate||'', seg.endDate||''),
+    [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存',cls:'btn-primary',fn:`saveSegDates('${id}')`}]
+  );
+}
+function saveSegDates(id){
+  const s=document.getElementById('segS').value, e=document.getElementById('segE').value;
+  if(!s){toast('請輸入開始日期','err');return;}
+  const seg=ST.segments.find(x=>x.id===id); if(!seg)return;
+  seg.startDate=s; seg.endDate=e||null;
+  pushSegments().then(()=>{renderSegs();closeM();toast('日期已更新','ok');});
 }
 function addSeg(type){
   const s=document.getElementById('segS').value,e=document.getElementById('segE').value;
