@@ -352,8 +352,13 @@ async function initDB(){
   if(SUPABASE_URL==='YOUR_SUPABASE_URL'){ console.warn('Supabase 未設定'); loadLocal(); return false; }
   try{
     db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    await loadRemote(); setStatus(true); return true;
-  }catch(e){ console.error(e); loadLocal(); setStatus(false); return false; }
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('連線逾時')),8000));
+    await Promise.race([loadRemote(), timeout]);
+    setStatus(true); return true;
+  }catch(e){
+    console.warn('Supabase 連線失敗，切換本地模式：',e.message);
+    loadLocal(); setStatus(false); return false;
+  }
 }
 function setStatus(on){
   document.getElementById('statusDot').className='dot'+(on?' on':'');
@@ -959,7 +964,11 @@ if(name===‘schedule’)renderSegs();
 if(name===‘shifts’)renderShifts();
 }
 async function init(){
+const lt=document.getElementById(‘loadingTxt’);
+lt.textContent=‘連線至 Supabase…’;
 await initDB();
+lt.textContent=‘載入資料中…’;
+await new Promise(r=>setTimeout(r,100));
 document.getElementById(‘loading’).style.display=‘none’;
 const app=document.getElementById(‘app’); app.style.display=‘flex’; app.style.flexDirection=‘column’;
 renderHome();
