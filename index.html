@@ -7,19 +7,6 @@
 <title>鐵路輪班小幫手</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-// 先試 unpkg，失敗再試 jsdelivr
-(function(){
-  var s=document.createElement('script');
-  s.src='https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js';
-  s.onerror=function(){
-    var s2=document.createElement('script');
-    s2.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js';
-    document.head.appendChild(s2);
-  };
-  document.head.appendChild(s);
-})();
-</script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
@@ -239,10 +226,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 <body>
 
 <div id="loading" class="loading">
-  <div class="spinner" id="loadSpinner"></div>
+  <div class="spinner"></div>
   <div class="loading-txt" id="loadingTxt">連線中...</div>
-  <div id="loadErr" style="display:none;margin-top:16px;max-width:300px;background:rgba(239,68,68,0.12);border:1px solid #ef4444;border-radius:8px;padding:12px;font-size:12px;color:#f87171;word-break:break-all;line-height:1.6;text-align:left"></div>
-  <button id="loadRetry" onclick="location.reload()" style="display:none;margin-top:12px;background:#f59e0b;color:#000;border:none;padding:8px 22px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">重新整理</button>
 </div>
 
 <div id="app" style="display:none;flex-direction:column;min-height:100vh">
@@ -353,78 +338,67 @@ const BUILTIN = [{"id":"501","name":"501","startTime":"07:27","endTime":"20:01",
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let db = null;
-let ST = { shifts:[], segments:[], exceptions:{} };
-let calY=new Date().getFullYear(), calM=new Date().getMonth()+1;
-let shiftFilter='all', parsedXLSX=null, homeOffset=0;
-let _editSegId='', _editCycle=[];
+let dbReady = false;
 
 // ══════════════════════════════════════════════
-// SUPABASE
+// SUPABASE REST API (no CDN required)
 // ══════════════════════════════════════════════
-function showLoadErr(msg){
-  var el=document.getElementById('loadErr');
-  var sp=document.getElementById('loadSpinner');
-  var rt=document.getElementById('loadRetry');
-  var lt=document.getElementById('loadingTxt');
-  if(el){el.style.display='block';el.textContent=(el.textContent?el.textContent+'\n':'')+msg;}
-  if(sp)sp.style.display='none';
-  if(rt)rt.style.display='block';
-  if(lt)lt.style.display='none';
+const SB = SUPABASE_URL.replace(/\/+$/, '');
+const SB_H = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+  'Content-Type': 'application/json'
+};
+async function sbFetch(path, opts){
+  const r = await fetch(SB + path, {...opts, headers:{...SB_H,...(opts&&opts.headers||{})}});
+  if(!r.ok){ const t=await r.text(); throw new Error(r.status+' '+t.slice(0,120)); }
+  return r.headers.get('content-length')==='0'||r.status===204 ? null : r.json();
+}
+async function loadRemote(){
+  const data = await sbFetch('/rest/v1/app_data?select=key,value');
+  const map = {};
+  (data||[]).forEach(r => map[r.key] = r.value);
+  ST.shifts = (map.shifts && map.shifts.length) ? map.shifts : [...BUILTIN];
+  ST.segments = map.segments || [];
+  ST.exceptions = map.exceptions || {};
+}
+async function dbSet(key, value){
+  await sbFetch('/rest/v1/app_data', {
+    method: 'POST',
+    headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
+    body: JSON.stringify({key, value})
+  });
 }
 async function initDB(){
-  if(SUPABASE_URL==='YOUR_SUPABASE_URL'){ loadLocal(); return false; }
-  // 等待 supabase-js 載入（最多 10 秒）
-  let waited=0;
-  while(typeof supabase==='undefined'&&waited<10000){
-    await new Promise(r=>setTimeout(r,200)); waited+=200;
-  }
-  if(typeof supabase==='undefined'){
-    showLoadErr('⚠️ supabase-js 無法載入（CDN 被封鎖）\n將使用本地模式');
-    loadLocal(); setStatus(false); return false;
-  }
+  if(SUPABASE_URL === 'YOUR_SUPABASE_URL'){ loadLocal(); return false; }
   try{
-    db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('連線逾時 8 秒')),8000));
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('連線逾時')), 8000));
     await Promise.race([loadRemote(), timeout]);
-    setStatus(true); return true;
+    dbReady = true; setStatus(true); return true;
   }catch(e){
-    showLoadErr('❌ Supabase 連線失敗：'+e.message+'\n切換至本地模式');
+    console.warn('Supabase failed:', e.message);
     loadLocal(); setStatus(false); return false;
   }
 }
 function setStatus(on){
-  document.getElementById('statusDot').className='dot'+(on?' on':'');
-  document.getElementById('statusTxt').textContent=on?'已連線':'本地模式';
-}
-async function loadRemote(){
-  const {data,error}=await db.from('app_data').select('*');
-  if(error){console.error('loadRemote error:',error);throw error;}
-  const map={};
-  (data||[]).forEach(r=>map[r.key]=r.value);
-  ST.shifts=(map.shifts&&map.shifts.length)?map.shifts:[...BUILTIN];
-  ST.segments=map.segments||[];
-  ST.exceptions=map.exceptions||{};
-}
-async function dbSet(key,value){
-  const {error}=await db.from('app_data').upsert({key,value},{onConflict:'key'});
-  if(error) console.error('dbSet error:',key,error);
+  document.getElementById('statusDot').className = 'dot' + (on ? ' on' : '');
+  document.getElementById('statusTxt').textContent = on ? '已連線' : '本地模式';
 }
 async function pushShifts(){
   saveLocal();
-  if(!db)return;
-  try{ await dbSet('shifts',ST.shifts); }catch(e){console.error(e);}
+  if(!dbReady) return;
+  try{ await dbSet('shifts', ST.shifts); }catch(e){ console.error('pushShifts:', e.message); }
 }
 async function pushSegments(){
   saveLocal();
-  if(!db)return;
-  try{ await dbSet('segments',ST.segments); }catch(e){console.error(e);}
+  if(!dbReady) return;
+  try{ await dbSet('segments', ST.segments); }catch(e){ console.error('pushSegments:', e.message); }
 }
-async function pushException(ds,data){
-  if(data) ST.exceptions[ds]=data; else delete ST.exceptions[ds];
+async function pushException(ds, data){
+  if(data) ST.exceptions[ds] = data; else delete ST.exceptions[ds];
   saveLocal();
-  if(!db)return;
-  try{ await dbSet('exceptions',ST.exceptions); }catch(e){console.error(e);}
+  if(!dbReady) return;
+  try{ await dbSet('exceptions', ST.exceptions); }catch(e){ console.error('pushException:', e.message); }
 }
 function loadLocal(){
   setStatus(false);
@@ -981,9 +955,10 @@ if(name===‘schedule’)renderSegs();
 if(name===‘shifts’)renderShifts();
 }
 async function init(){
-try{ await initDB(); }catch(e){ showLoadErr(‘啟動失敗：’+e.message); loadLocal(); }
+try{ await initDB(); }catch(e){ console.error(‘init error:’, e); loadLocal(); }
 document.getElementById(‘loading’).style.display=‘none’;
-const app=document.getElementById(‘app’); app.style.display=‘flex’; app.style.flexDirection=‘column’;
+const app=document.getElementById(‘app’);
+app.style.display=‘flex’; app.style.flexDirection=‘column’;
 renderHome();
 }
 init();
