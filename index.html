@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>鐵路輪班小助手</title>
+<title>彰機排班系統</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -227,13 +227,15 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 <body>
 
 <div id="loading" class="loading">
-  <div class="spinner"></div>
-  <div class="loading-txt" id="loadingTxt">連線中...</div>
+  <div class="spinner" id="loadingSpinner"></div>
+  <div class="loading-txt" id="loadingTxt">連線至 Supabase...</div>
+  <div id="loadingErr" style="display:none;margin-top:16px;max-width:320px;background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:12px 14px;font-size:12px;color:#f87171;word-break:break-all;text-align:left;line-height:1.6"></div>
+  <button id="loadingRetry" style="display:none;margin-top:12px;background:#f59e0b;color:#000;border:none;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer" onclick="location.reload()">重新整理</button>
 </div>
 
 <div id="app" style="display:none;flex-direction:column;min-height:100vh">
   <div class="topbar">
-    <div class="brand">🚆 <span>鐵路輪班小助手</span></div>
+    <div class="brand">🚆 <span>排班系統</span></div>
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showPage('home')">⊙ <span class="nav-lbl">首頁</span></button>
       <button class="nav-tab" onclick="showPage('calendar')">▦ <span class="nav-lbl">月曆</span></button>
@@ -963,15 +965,33 @@ if(name===‘calendar’)renderCal();
 if(name===‘schedule’)renderSegs();
 if(name===‘shifts’)renderShifts();
 }
+// 攔截錯誤顯示在畫面上
+function showLoadErr(msg){
+const el=document.getElementById(‘loadingErr’);
+const sp=document.getElementById(‘loadingSpinner’);
+const rt=document.getElementById(‘loadingRetry’);
+if(el){ el.style.display=‘block’; el.textContent=(el.textContent?el.textContent+’\n’:’’)+msg; }
+if(sp) sp.style.display=‘none’;
+if(rt) rt.style.display=‘block’;
+}
+const _origError=console.error.bind(console);
+console.error=(…args)=>{ _origError(…args); showLoadErr(‘ERROR: ‘+args.map(a=>typeof a===‘object’?JSON.stringify(a):String(a)).join(’ ‘)); };
+window.addEventListener(‘unhandledrejection’,e=>showLoadErr(‘UNHANDLED: ‘+(e.reason?.message||String(e.reason))));
+window.addEventListener(‘error’,e=>showLoadErr(‘JS ERROR: ‘+e.message+’ (’+e.filename+’:’+e.lineno+’)’));
+
 async function init(){
 const lt=document.getElementById(‘loadingTxt’);
 lt.textContent=‘連線至 Supabase…’;
+try{
 await initDB();
 lt.textContent=‘載入資料中…’;
 await new Promise(r=>setTimeout(r,100));
 document.getElementById(‘loading’).style.display=‘none’;
 const app=document.getElementById(‘app’); app.style.display=‘flex’; app.style.flexDirection=‘column’;
 renderHome();
+}catch(e){
+showLoadErr(‘init() 失敗：’+e.message);
+}
 }
 init();
 
