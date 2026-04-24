@@ -339,6 +339,10 @@ const BUILTIN = [{"id":"501","name":"501","startTime":"07:27","endTime":"20:01",
 // STATE
 // ══════════════════════════════════════════════
 let dbReady = false;
+let ST = { shifts: [], segments: [], exceptions: {} };
+let calY = new Date().getFullYear(), calM = new Date().getMonth() + 1;
+let shiftFilter = 'all', parsedXLSX = null, homeOffset = 0;
+let _editSegId = '', _editCycle = [];
 
 // ══════════════════════════════════════════════
 // SUPABASE REST API (no CDN required)
@@ -381,8 +385,12 @@ async function initDB(){
   }
 }
 function setStatus(on){
-  document.getElementById('statusDot').className = 'dot' + (on ? ' on' : '');
-  document.getElementById('statusTxt').textContent = on ? '已連線' : '本地模式';
+  try{
+    const dot=document.getElementById('statusDot');
+    const txt=document.getElementById('statusTxt');
+    if(dot) dot.className='dot'+(on?' on':'');
+    if(txt) txt.textContent=on?'已連線':'本地模式';
+  }catch(e){}
 }
 async function pushShifts(){
   saveLocal();
@@ -828,6 +836,20 @@ pushSegments().then(()=>{renderSegs();closeM();renderHome();toast(‘備勤班�
 // ══════════════════════════════════════════════
 // SHIFTS DB
 // ══════════════════════════════════════════════
+function sortShifts(arr){
+return […arr].sort((a,b)=>{
+// Extract numeric prefix and suffix
+const parse=name=>{
+const m=name.match(/^(\d+)(.*)/);
+return m?[parseInt(m[1]),m[2]]:[9999,name];
+};
+const [an,as]=parse(a.name), [bn,bs]=parse(b.name);
+if(an!==bn) return an-bn;
+// Same number: base shift before variants (no suffix < AV < V < others)
+const rank=s=>s===’’?0:s===‘AV’?1:s===‘V’?2:3;
+return rank(as)-rank(bs)||as.localeCompare(bs);
+});
+}
 function renderShifts(){
 const q=(document.getElementById(‘shiftSrch’)?.value||’’).toLowerCase();
 const list=ST.shifts.filter(s=>{
@@ -869,6 +891,7 @@ isOvernight:document.getElementById(‘eon’).checked,
 imageUrl:id?(ST.shifts.find(s=>s.id===id)?.imageUrl||’’):’’,
 };
 if(id) ST.shifts=ST.shifts.map(s=>s.id===id?entry:s); else ST.shifts.push(entry);
+ST.shifts=sortShifts(ST.shifts);
 pushShifts().then(()=>{renderShifts();closeM();toast(‘已儲存’,‘ok’);});
 }
 function deleteShift(id){ if(!confirm(‘確定刪除？’))return; ST.shifts=ST.shifts.filter(s=>s.id!==id); pushShifts().then(()=>{renderShifts();toast(‘已刪除’,‘ok’);}); }
@@ -926,7 +949,7 @@ reader.readAsArrayBuffer(file);
 function doImport(){
 if(!parsedXLSX?.length){toast(‘請先選擇 Excel 檔案’,‘err’);return;}
 if(!confirm(`確認匯入 ${parsedXLSX.length} 個工作班？`))return;
-ST.shifts=parsedXLSX; parsedXLSX=null;
+ST.shifts=sortShifts(parsedXLSX); parsedXLSX=null;
 pushShifts().then(()=>{renderShifts();closeM();toast(`已匯入 ${ST.shifts.length} 個工作班`,‘ok’);});
 }
 
