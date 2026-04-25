@@ -200,6 +200,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 
 /* LOADING */
 .app-hidden{display:none!important}
+.edit-only{display:none!important}
+.edit-mode .edit-only{display:flex!important}
 .loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:14px}
 .spinner{width:36px;height:36px;border:3px solid var(--bdr2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -235,8 +237,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showPage('home')">⊙ <span class="nav-lbl">首頁</span></button>
       <button class="nav-tab" onclick="showPage('calendar')">▦ <span class="nav-lbl">月曆</span></button>
-      <button class="nav-tab" onclick="showPage('schedule')">↻ <span class="nav-lbl">排班設定</span></button>
-      <button class="nav-tab" onclick="showPage('shifts')">≡ <span class="nav-lbl">工作班</span></button>
+      <button class="nav-tab edit-only" onclick="showPage('schedule')">↻ <span class="nav-lbl">排班設定</span></button>
+      <button class="nav-tab edit-only" onclick="showPage('shifts')">≡ <span class="nav-lbl">工作班</span></button>
     </div>
     <div class="status-wrap">
       <div class="dot" id="statusDot"></div>
@@ -325,6 +327,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 const SUPABASE_URL     = 'https://oqyjixphmdrhcmomskth.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xeWppeHBobWRyaGNtb21za3RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTQzMzEsImV4cCI6MjA5MjUzMDMzMX0.TfsdVXmN_lhy3fM2LlZ27MAPIhRI-8agSVXiycvaGis';
 const IMAGE_BASE       = 'images/';   // GitHub repo 圖片資料夾
+const EDIT_MODE = new URLSearchParams(window.location.search).get('edit') === '1';
 
 // ══════════════════════════════════════════════
 // 📦 BUILT-IN SHIFTS (from Excel 114/03/30)
@@ -526,7 +529,7 @@ function buildDayCard(ds,label,isToday){
       </div>
     </div>
     ${body}
-    <div class="dc-foot"><button class="btn-sm" onclick="openExModal('${ds}')">✏️ 臨時修改</button>${clearBtn}</div>
+    <div class="dc-foot">${EDIT_MODE?`<button class="btn-sm" onclick="openExModal('${ds}')">✏️ 臨時修改</button>${clearBtn}`:''}</div>
   </div>`;
 }
 
@@ -562,11 +565,11 @@ function openExModal(ds){
         <div style="display:flex;gap:7px;align-items:center">
           <select class="fs" id="exS" style="flex:1" onchange="onExShiftChange()">${opts}</select>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);white-space:nowrap;cursor:pointer">
-            <input type="checkbox" id="exCustomShift" onchange="toggleExCustomShift()" ${!sid||!getShift(sid)?'checked':''}>
+            <input type="checkbox" id="exCustomShift" onchange="toggleExCustomShift()">
             自訂班號
           </label>
         </div>
-        <input class="fi" id="exCustomShiftVal" placeholder="輸入臨時班號，如 加班001" style="margin-top:7px;${(!sid||!getShift(sid))?'':'display:none'}" value="${!sid||!getShift(sid)?sid:''}">
+        <input class="fi" id="exCustomShiftVal" placeholder="輸入臨時班號，如 加班001" style="margin-top:7px;display:none" value="">
       </div>
       <div class="sep"></div>
       <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">以下時間留空則使用工作班預設值</div>
@@ -599,12 +602,32 @@ function openExModal(ds){
     [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存',cls:'btn-primary',fn:`saveEx('${ds}')`}],
     true
   );
-  // Set select value after render
+  // Set correct state after render
   setTimeout(()=>{
+    // Always show/hide exSG based on current type
+    const tEl=document.getElementById('exT');
+    const sg=document.getElementById('exSG');
+    if(tEl&&sg) sg.style.display=(tEl.value==='work'||tEl.value==='standby')?'':'none';
+
+    // If sid exists in DB: show dropdown, uncheck custom
+    const el=document.getElementById('exS');
+    const cb=document.getElementById('exCustomShift');
+    const cv=document.getElementById('exCustomShiftVal');
     if(sid&&getShift(sid)){
-      const el=document.getElementById('exS'); if(el) el.value=sid;
-      document.getElementById('exCustomShift').checked=false;
-      document.getElementById('exCustomShiftVal').style.display='none';
+      if(el) el.value=sid;
+      if(cb){ cb.checked=false; }
+      if(cv) cv.style.display='none';
+      if(el) el.style.display='';
+    } else if(sid&&!getShift(sid)){
+      // custom shift id
+      if(cb){ cb.checked=true; }
+      if(cv){ cv.style.display=''; cv.value=sid; }
+      if(el) el.style.display='none';
+    } else {
+      // no sid at all - default: dropdown visible, custom unchecked
+      if(cb){ cb.checked=false; }
+      if(cv) cv.style.display='none';
+      if(el){ el.style.display=''; }
     }
   },50);
 }
@@ -1061,6 +1084,7 @@ function showApp(){
   const app=document.getElementById('app');
   app.classList.remove('app-hidden');
   app.style.display='flex';
+  if(EDIT_MODE) app.classList.add('edit-mode');
   renderHome();
 }
 function init(){
