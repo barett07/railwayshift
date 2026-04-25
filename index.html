@@ -515,10 +515,27 @@ function buildDayCard(ds,label,isToday){
       ${info.note?`<div class="day-note" style="text-align:left;margin-top:12px">📝 ${info.note}</div>`:''}</div>`;
   }else{
     const icons={off:'🔴',rest:'🟢',leave:'🟠',unknown:'❓'};
-    const labels={off:'例假日',rest:'休班（跨日班後）',leave:'特休假',unknown:'尚未設定排班'};
-    body=`<div class="no-work"><div class="no-work-icon">${icons[info.type]||'❓'}</div>
-      <div class="no-work-label">${labels[info.type]||'—'}</div>
-      ${info.note?`<div class="day-note" style="text-align:left;margin-top:12px">📝 ${info.note}</div>`:''}</div>`;
+    const labels={off:'例假日',rest:'休班',leave:'特休假',unknown:'尚未設定排班'};
+    if(info.type==='rest'){
+      // Find previous day's shift for reference
+      const prevDs=addDays(ds,-1);
+      const prevInfo=getDayInfo(prevDs);
+      const prevShift=prevInfo.shiftId?getShift(prevInfo.shiftId):null;
+      const prevImgSrc=prevShift?(prevShift.imageUrl||(IMAGE_BASE+prevShift.name+'.jpeg')):null;
+      body=`<div class="no-work">
+        <div class="no-work-icon">🟢</div>
+        <div class="no-work-label">休班</div>
+        ${info.note?`<div class="day-note" style="text-align:left;margin-top:8px">📝 ${info.note}</div>`:''}
+      </div>
+      ${prevShift?`<div class="dc-body" style="padding-top:0">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--bdr)">📋 承接自昨日工作班 ${prevShift.name}</div>
+        <img class="shift-img" src="${prevImgSrc}" alt="${prevShift.name}" onerror="this.style.display='none'">
+      </div>`:''}`;
+    } else {
+      body=`<div class="no-work"><div class="no-work-icon">${icons[info.type]||'❓'}</div>
+        <div class="no-work-label">${labels[info.type]||'—'}</div>
+        ${info.note?`<div class="day-note" style="text-align:left;margin-top:12px">📝 ${info.note}</div>`:''}</div>`;
+    }
   }
   const clearBtn=info.isEx?`<button class="btn-sm warn" onclick="clearEx('${ds}')">↩ 還原</button>`:'';
   return `<div class="day-card ${isToday?'is-today':''} ${info.isEx?'is-ex':''}">
@@ -1033,7 +1050,7 @@ function parseXLSX(e){
           arrTrain:String(row[8]||'').trim().replace('nan',''),
           arrTime:toT(row[9]),
           specialNote:String(row[4]||'').trim().replace('nan',''),
-          isOvernight:on,
+          isOvernight:false,
           boardTime:ex.boardTime||'',
           alightTime:ex.alightTime||'',
           imageUrl:ex.imageUrl||'',
