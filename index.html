@@ -784,7 +784,7 @@ function deleteSeg(id){
 function openCycleEdit(segId){
   _editSegId=segId;
   const seg=ST.segments.find(s=>s.id===segId);
-  _editCycle=(seg?.cycle||[]).filter(e=>e.type!=='rest').map(e=>Object.assign({},e));
+  _editCycle=(seg?.cycle||[]).map(e=>Object.assign({},e));
   renderCycleModal();
 }
 function buildShiftOpts(){ return ST.shifts.map(s=>`<option value="${s.id}">${s.name}${s.specialNote?' ('+s.specialNote+')':''}</option>`).join(''); }
@@ -792,7 +792,7 @@ function renderCycleModal(){
   const opts=buildShiftOpts();
   const rows=_editCycle.map((e,i)=>buildCycleRow(i,e,opts)).join('');
   setModal('編輯輪班循環',`
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:10px">跨日班後系統自動插入🟢休班，無需手動設定。</div>
+
     <div id="crows" class="cycle-list">${rows}</div>
     <button class="btn btn-ghost" style="width:100%;margin-top:9px" onclick="addCycleRow()">＋ 新增一天</button>`,
     [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存循環',cls:'btn-primary',fn:'saveCycle()'}],
@@ -801,8 +801,7 @@ function renderCycleModal(){
   setTimeout(()=>_editCycle.forEach((e,i)=>{ const el=document.getElementById('cs_'+i); if(el&&e.shiftId)el.value=e.shiftId; }),60);
 }
 function buildCycleRow(i,e,opts){
-  const isW=e.type==='work', si=getShift(e.shiftId);
-  const info=si?` ${si.startTime}~${si.endTime}`:'';
+  const isW=e.type==='work';
   if(!opts) opts=buildShiftOpts();
   return `<div class="cycle-row" id="cr_${i}">
     <span class="cycle-num">第${i+1}天</span>
@@ -815,7 +814,6 @@ function buildCycleRow(i,e,opts){
     <select class="c-sel" id="cs_${i}" style="${isW?'':'display:none'}">
       <option value="">選擇班次...</option>${opts}
     </select>
-    <span class="c-info">${info}</span>
     <div style="display:flex;gap:3px">
       <button class="ic-btn" onclick="moveCRow(${i},-1)" ${i===0?'disabled':''}>↑</button>
       <button class="ic-btn" onclick="moveCRow(${i},1)">↓</button>
@@ -836,10 +834,9 @@ function addCycleRow(){ _editCycle=readCycle(); _editCycle.push({type:'work',shi
 function moveCRow(i,dir){ _editCycle=readCycle(); const j=i+dir; if(j<0||j>=_editCycle.length)return; [_editCycle[i],_editCycle[j]]=[_editCycle[j],_editCycle[i]]; renderCycleModal(); }
 function delCRow(i){ _editCycle=readCycle(); _editCycle.splice(i,1); renderCycleModal(); }
 function saveCycle(){
-  const raw=readCycle(), expanded=[];
-  raw.forEach(e=>{ expanded.push(e); if(e.type==='work'&&e.shiftId){const s=getShift(e.shiftId);if(s?.isOvernight)expanded.push({type:'rest',shiftId:null});} });
-  const seg=ST.segments.find(s=>s.id===_editSegId); if(seg)seg.cycle=expanded;
-  pushSegments().then(()=>{renderSegs();closeM();toast(`循環已儲存（${expanded.length} 天）`,'ok');});
+  const cycle=readCycle();
+  const seg=ST.segments.find(s=>s.id===_editSegId); if(seg)seg.cycle=cycle;
+  pushSegments().then(()=>{renderSegs();closeM();toast(`循環已儲存（${cycle.length} 天）`,'ok');});
 }
 
 // ── STANDBY ──
@@ -965,8 +962,7 @@ function openEditShift(id){
     <div class="f2">
       <div class="fg"><label class="fl">首班車次（參考）</label><input class="fi" id="edt" value="${s?.depTrain||''}" placeholder="如 108(3000)"></div>
       <div class="fg"><label class="fl">末班車次（參考）</label><input class="fi" id="eat2" value="${s?.arrTrain||''}" placeholder="如 139"></div>
-    </div>
-    <div class="fg"><label class="fcheck"><input type="checkbox" id="eon" ${s?.isOvernight?'checked':''}> 跨日班（下一天自動加🟢休班）</label></div>`,
+    </div>`,
     [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存',cls:'btn-primary',fn:`saveShift('${id||''}')`}],
     true
   );
@@ -982,7 +978,7 @@ function saveShift(id){
     alightTime:document.getElementById('eat').value,
     depTrain:document.getElementById('edt').value.trim(),
     arrTrain:document.getElementById('eat2').value.trim(),
-    isOvernight:document.getElementById('eon').checked,
+    isOvernight:false,
     imageUrl:id?(ST.shifts.find(s=>s.id===id)?.imageUrl||''):'',
   };
   if(id) ST.shifts=ST.shifts.map(s=>s.id===id?entry:s); else ST.shifts.push(entry);
