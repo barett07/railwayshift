@@ -499,7 +499,7 @@ function buildDayCard(ds,label,isToday){
         <div class="shift-num" style="margin-bottom:0;line-height:1">${shift.name}</div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">⏱ 上班時間</div>
-          <div style="font-size:30px;font-weight:900;font-family:'DM Mono',monospace;color:#fff;line-height:1;text-shadow:0 0 20px rgba(255,255,255,0.3)">${fmt(startT)}</div>
+          <div style="font-size:30px;font-weight:900;font-family:'DM Mono',monospace;color:#fff;line-height:1">${fmt(startT)}</div>
         </div>
       </div>
       ${shift.specialNote?`<div class="s-note" style="margin-bottom:10px">📋 ${shift.specialNote}</div>`:''}
@@ -522,6 +522,7 @@ function buildDayCard(ds,label,isToday){
       const prevInfo=getDayInfo(prevDs);
       const prevShift=prevInfo.shiftId?getShift(prevInfo.shiftId):null;
       const prevImgSrc=prevShift?(prevShift.imageUrl||(IMAGE_BASE+prevShift.name+'.jpeg')):null;
+      const prevAlight=prevShift?(prevInfo.customAlight||prevShift.alightTime||''):'';
       body=`<div class="no-work">
         <div class="no-work-icon">🟢</div>
         <div class="no-work-label">休班</div>
@@ -529,6 +530,7 @@ function buildDayCard(ds,label,isToday){
       </div>
       ${prevShift?`<div class="dc-body" style="padding-top:0">
         <div style="font-size:10px;color:var(--tx3);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--bdr)">📋 承接自昨日工作班 ${prevShift.name}</div>
+        ${prevAlight?`<div class="ti" style="margin-bottom:10px"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${prevAlight}</div></div>`:''}
         <img class="shift-img" src="${prevImgSrc}" alt="${prevShift.name}" onerror="this.style.display='none'">
       </div>`:''}`;
     } else {
