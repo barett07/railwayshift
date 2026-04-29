@@ -544,28 +544,24 @@ function buildDayCard(ds,label,isToday){
       const prevShift=prevInfo.shiftId?getShift(prevInfo.shiftId):null;
       const prevImgSrc=prevShift?(prevShift.imageUrl||(IMAGE_BASE+prevShift.name+'.jpeg')):null;
       const prevAlight=prevShift?(prevInfo.customAlight||prevShift.alightTime||''):'';
-      body=`<div class="no-work">
-        <div class="no-work-icon">🟢</div>
-        <div class="no-work-label">休班</div>
-        ${info.note?`<div class="day-note" style="text-align:left;margin-top:8px">📝 ${info.note}</div>`:''}
-      </div>
-      ${prevShift?`<div class="dc-body" style="padding-top:0">
-        <div style="font-size:10px;color:var(--tx3);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--bdr)">📋 承接自昨日工作班 ${prevShift.name}</div>
+      body=`${prevShift?`<div class="dc-body">
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:8px">📋 承接自昨日工作班 ${prevShift.name}</div>
         ${prevAlight?`<div class="ti" style="margin-bottom:10px"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${prevAlight}</div></div>`:''}
+        ${info.note?`<div class="day-note" style="margin-bottom:10px">📝 ${info.note}</div>`:''}
         <img class="shift-img" src="${prevImgSrc}" alt="${prevShift.name}" onerror="this.style.display='none'">
-      </div>`:''}`;
+      </div>`:`<div class="dc-body">${info.note?`<div class="day-note">📝 ${info.note}</div>`:''}</div>`}`;
     } else {
-      body=`<div class="no-work"><div class="no-work-icon">${icons[info.type]||'❓'}</div>
-        <div class="no-work-label">${labels[info.type]||'—'}</div>
-        ${info.note?`<div class="day-note" style="text-align:left;margin-top:12px">📝 ${info.note}</div>`:''}</div>`;
+      body=`<div class="dc-body" style="min-height:0;padding:10px 16px">
+        ${info.note?`<div class="day-note">📝 ${info.note}</div>`:''}
+      </div>`;
     }
   }
   const clearBtn=info.isEx?`<button class="btn-sm warn" onclick="clearEx('${ds}')">↩ 還原</button>`:'';
   return `<div class="day-card ${isToday?'is-today':''} ${info.isEx?'is-ex':''}">
-    <div class="dc-head">
+    <div class="dc-head" style="align-items:center">
       <div><div class="dc-label">${label}</div><div class="dc-date">${ds}</div><div class="dc-wd">星期${wd(ds)}</div></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-        <span class="badge ${bcls}">${TL[info.type]||'—'}</span>${exTag}
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;align-self:center">
+        <span class="badge ${bcls}" style="font-size:14px;padding:6px 14px">${TL[info.type]||'—'}</span>${exTag}
       </div>
     </div>
     ${body}
