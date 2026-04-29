@@ -722,13 +722,15 @@ function renderCal(){
   for(let d=1;d<=days;d++){
     const ds=`${calY}-${p2(calM)}-${p2(d)}`;
     const info=getDayInfo(ds), sh=info.shiftId?getShift(info.shiftId):null;
-    const cls=TC[info.type]||'', board=sh?(sh.boardTime||''):'';
+    const cls=TC[info.type]||'';
+    const shiftName=sh?sh.name:(info.type==='work'&&info.shiftId?info.shiftId:'');
+    const board=info.customBoard||(sh?sh.boardTime||'':'');
     h+=`<div class="cal-cell ${cls} ${ds===today?'today':''}" onclick="goToDate('${ds}')" style="cursor:pointer">
       ${info.isEx?'<div class="cc-ex"></div>':''}
       <div class="cc-day">${d}</div>
       <div class="cc-type">${TL[info.type]||''}</div>
-      ${sh?`<div class="cc-shift">${sh.name}</div>`:''}
-      ${sh&&board?`<div class="cc-time">↑${board}</div>`:''}
+      ${shiftName?`<div class="cc-shift">${shiftName}</div>`:''}
+      ${shiftName&&board?`<div class="cc-time">↑${board}</div>`:''}
     </div>`;
   }
   document.getElementById('calGrid').innerHTML=h;
