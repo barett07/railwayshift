@@ -527,7 +527,8 @@ function buildDayCard(ds,label,isToday){
         ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
       ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${info.note}</div>`:''}
-      <div style="font-size:11px;color:var(--tx3);margin-top:8px">⚠️ 此班號不在資料庫，無法顯示工作內容圖</div>
+      <img class="shift-img" src="${IMAGE_BASE}${info.shiftId}.jpeg" alt="${info.shiftId}"
+        onerror="this.style.display='none'">
     </div>`;
   }else if(info.type==='standby'){
     body=`<div class="no-work"><div class="no-work-icon">🟡</div><div class="no-work-label">備勤待命</div>
