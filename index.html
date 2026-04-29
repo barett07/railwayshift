@@ -276,6 +276,14 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
         <div class="leg-item"><div class="leg-dot" style="background:var(--p)"></div>備勤</div>
         <div class="leg-item"><div class="cc-ex" style="position:static"></div>例外修改</div>
       </div>
+      <div id="leaveStats" style="margin-top:16px;background:var(--s2);border:1px solid var(--b-d,rgba(59,130,246,0.3));border-radius:var(--rad);padding:16px;">
+        <div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">🟠 當年度特休統計</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span id="leaveCount" style="font-size:40px;font-weight:900;font-family:'DM Mono',monospace;color:var(--b)">0</span>
+          <span style="font-size:14px;color:var(--tx2)">天</span>
+          <span id="leaveYear" style="font-size:12px;color:var(--tx3);margin-left:4px"></span>
+        </div>
+      </div>
     </div>
 
     <!-- SCHEDULE -->
@@ -730,6 +738,23 @@ function renderCal(){
     </div>`;
   }
   document.getElementById('calGrid').innerHTML=h;
+  // 計算當年度特休天數
+  const thisYear=new Date().getFullYear();
+  const yearEnd=`${thisYear}-12-31`;
+  const yearStart=`${thisYear}-01-01`;
+  let leaveCount=0;
+  let d2=new Date(yearStart+'T00:00:00');
+  const endD=new Date(yearEnd+'T00:00:00');
+  while(d2<=endD){
+    const ds2=`${d2.getFullYear()}-${p2(d2.getMonth()+1)}-${p2(d2.getDate())}`;
+    const info2=getDayInfo(ds2);
+    if(info2.type==='leave') leaveCount++;
+    d2.setDate(d2.getDate()+1);
+  }
+  const lcEl=document.getElementById('leaveCount');
+  const lyEl=document.getElementById('leaveYear');
+  if(lcEl) lcEl.textContent=leaveCount;
+  if(lyEl) lyEl.textContent=`（${thisYear} 年度）`;
 }
 function calMove(dir){ calM+=dir; if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;} renderCal(); }
 function goToDate(ds){
@@ -1108,8 +1133,8 @@ function showPage(name){
   document.getElementById('page-'+name).classList.add('active');
   const idx={home:0,calendar:1,schedule:2,shifts:3};
   document.querySelectorAll('.nav-tab')[idx[name]]?.classList.add('active');
-  if(name==='home')renderHome();
-  if(name==='calendar')renderCal();
+  if(name==='home'){ homeOffset=0; renderHome(); }
+  if(name==='calendar'){ calY=new Date().getFullYear(); calM=new Date().getMonth()+1; renderCal(); }
   if(name==='schedule')renderSegs();
   if(name==='shifts')renderShifts();
 }
