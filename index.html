@@ -372,6 +372,7 @@ async function loadRemote(){
   ST.shifts = (map.shifts && map.shifts.length) ? map.shifts : [...BUILTIN];
   ST.segments = map.segments || [];
   ST.exceptions = map.exceptions || {};
+  buildShiftMap();
 }
 async function dbSet(key, value){
   await sbFetch('/rest/v1/app_data', {
@@ -405,6 +406,7 @@ function setStatus(on){
   }catch(e){}
 }
 async function pushShifts(){
+  buildShiftMap();
   saveLocal();
   if(!dbReady) return;
   try{ await dbSet('shifts', ST.shifts); }catch(e){ console.error('pushShifts:', e.message); }
@@ -427,6 +429,7 @@ function loadLocal(){
     const seg=localStorage.getItem('rw2_segments'); ST.segments=seg?JSON.parse(seg):[];
     const ex=localStorage.getItem('rw2_exceptions'); ST.exceptions=ex?JSON.parse(ex):{};
   }catch{ ST.shifts=[...BUILTIN]; }
+  buildShiftMap();
 }
 function saveLocal(){
   try{
@@ -466,7 +469,11 @@ function getDayInfo(ds){
   const i=diffDays(seg.startDate,ds)%seg.cycle.length;
   return i>=0?{...seg.cycle[Math.max(0,i)]}:{type:'unknown'};
 }
-function getShift(id){ return ST.shifts.find(s=>s.id===id); }
+function buildShiftMap(){
+  ST._shiftMap = {};
+  ST.shifts.forEach(s=>{ ST._shiftMap[s.id]=s; });
+}
+function getShift(id){ return ST._shiftMap?ST._shiftMap[id]:ST.shifts.find(s=>s.id===id); }
 const TL={work:'🚄 工作班',off:'🔴 例假',rest:'🟢 休班',leave:'🟠 特休',standby:'🟡 備勤',unknown:'—'};
 const TB={work:'badge-work',off:'badge-off',rest:'badge-rest',leave:'badge-leave',standby:'badge-standby',unknown:'badge-unknown'};
 const TC={work:'work',off:'off',rest:'rest',leave:'leave',standby:'standby',unknown:''};
@@ -712,7 +719,7 @@ function saveEx(ds){
   const customBoard=document.getElementById('exBoard')?.value||'';
   const customAlight=document.getElementById('exAlight')?.value||'';
   const data={type,shiftId,note,customStart,customBoard,customAlight};
-  pushException(ds,data).then(()=>{closeM();renderHome();renderCal();toast('已儲存例外','ok');});
+  pushException(ds,data).then(()=>{closeM();renderHome();renderCal();calcLeaveStats();toast('已儲存例外','ok');});
 }
 
 // ══════════════════════════════════════════════
@@ -738,17 +745,15 @@ function renderCal(){
     </div>`;
   }
   document.getElementById('calGrid').innerHTML=h;
-  // 計算當年度特休天數
+}
+function calcLeaveStats(){
   const thisYear=new Date().getFullYear();
-  const yearEnd=`${thisYear}-12-31`;
-  const yearStart=`${thisYear}-01-01`;
   let leaveCount=0;
-  let d2=new Date(yearStart+'T00:00:00');
-  const endD=new Date(yearEnd+'T00:00:00');
+  let d2=new Date(`${thisYear}-01-01T00:00:00`);
+  const endD=new Date(`${thisYear}-12-31T00:00:00`);
   while(d2<=endD){
     const ds2=`${d2.getFullYear()}-${p2(d2.getMonth()+1)}-${p2(d2.getDate())}`;
-    const info2=getDayInfo(ds2);
-    if(info2.type==='leave') leaveCount++;
+    if(getDayInfo(ds2).type==='leave') leaveCount++;
     d2.setDate(d2.getDate()+1);
   }
   const lcEl=document.getElementById('leaveCount');
@@ -905,7 +910,7 @@ function delCRow(i){ _editCycle=readCycle(); _editCycle.splice(i,1); renderCycle
 function saveCycle(){
   const cycle=readCycle();
   const seg=ST.segments.find(s=>s.id===_editSegId); if(seg)seg.cycle=cycle;
-  pushSegments().then(()=>{renderSegs();closeM();toast(`循環已儲存（${cycle.length} 天）`,'ok');});
+  pushSegments().then(()=>{renderSegs();closeM();calcLeaveStats();toast(`循環已儲存（${cycle.length} 天）`,'ok');});
 }
 
 // ── STANDBY ──
@@ -1140,7 +1145,7 @@ function showPage(name){
   const idx={home:0,calendar:1,schedule:2,shifts:3};
   document.querySelectorAll('.nav-tab')[idx[name]]?.classList.add('active');
   if(name==='home'){ homeOffset=0; renderHome(); }
-  if(name==='calendar'){ calY=new Date().getFullYear(); calM=new Date().getMonth()+1; renderCal(); }
+  if(name==='calendar'){ calY=new Date().getFullYear(); calM=new Date().getMonth()+1; renderCal(); calcLeaveStats(); }
   if(name==='schedule')renderSegs();
   if(name==='shifts')renderShifts();
 }
