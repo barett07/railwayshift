@@ -759,8 +759,14 @@ function renderCal(){
 function calMove(dir){ calM+=dir; if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;} renderCal(); }
 function goToDate(ds){
   const today=todayStr();
-  homeOffset=diffDays(today,ds);
-  showPage('home');
+  const offset=diffDays(today,ds);
+  // 直接切換頁面，不透過 showPage 避免 homeOffset 被重置
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-home').classList.add('active');
+  document.querySelectorAll('.nav-tab')[0]?.classList.add('active');
+  homeOffset=offset;
+  renderHome();
 }
 
 // ══════════════════════════════════════════════
