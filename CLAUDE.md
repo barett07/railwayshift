@@ -62,6 +62,27 @@ URL param `?edit=1` enables edit-only UI elements (`.edit-only` class). Edit mod
 
 `images/` folder contains JPEG files named by shift number (e.g., `501.jpeg`, `544V.jpeg`, `575AV.jpeg`). Referenced as `images/{shiftId}.jpeg`. Missing images fail silently via `onerror="this.style.display='none'"`.
 
+## Apple Calendar Integration
+
+A Supabase Edge Function generates a live `.ics` feed for Apple Calendar subscription.
+
+- **Source**: `supabase/functions/calendar/index.ts`
+- **Endpoint**: `https://oqyjixphmdrhcmomskth.supabase.co/functions/v1/calendar` (public, no JWT)
+- **Covers**: work days only, events span `startTime` → `endTime`, 30-min alarm
+- **Deploy command**:
+  ```bash
+  cd "/Users/stan/Claude Code/railwayshift"
+  supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth --no-verify-jwt
+  ```
+
+**Critical**: `isOvernight` on shift objects imported from Excel is always `false` (hardcoded in `parseXLSX`). Do NOT rely on this field to detect overnight shifts. Use time-string comparison instead: `endTime <= startTime` means the shift spans midnight.
+
+**Variant shift fallback**: If a shiftId like `576V` is not found in the shift map, the Edge Function strips the suffix (`V`/`AV`) and retries with the base ID.
+
+## Excel Import
+
+`parseXLSX` (line ~1079) uses dynamic column detection — it scans the header row for column names rather than fixed offsets, so it handles files with extra leading columns (e.g., 1150323公告資料.xlsx). Required columns: `工作班`、`上班時間`、`下班時間`. Missing required columns show an error and abort without overwriting existing data.
+
 ## Collaboration Rules
 
 **Before writing any code**, discuss the change direction with the user and get explicit approval. Only start generating code when the user says "開始生成" or equivalent confirmation. Do not implement speculatively.
