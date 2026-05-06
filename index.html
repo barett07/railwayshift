@@ -286,6 +286,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
         <div class="leg-item"><div class="leg-dot" style="background:var(--p)"></div>備勤</div>
         <div class="leg-item"><div class="cc-ex" style="position:static"></div>例外修改</div>
       </div>
+      <div style="margin-top:14px;text-align:center">
+        <button class="btn btn-secondary" onclick="subscribeCalendar()" style="font-size:13px;padding:9px 18px">📅 訂閱 Apple 行事曆</button>
+      </div>
       <div id="leaveStats" style="margin-top:16px;background:var(--s2);border:1px solid var(--b-d,rgba(59,130,246,0.3));border-radius:var(--rad);padding:16px;">
         <div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">🟠 當年度特休統計</div>
         <div style="display:flex;align-items:baseline;gap:8px">
@@ -772,6 +775,9 @@ function calcLeaveStats(){
   if(lyEl) lyEl.textContent=`（${thisYear} 年度）`;
 }
 function calMove(dir){ calM+=dir; if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;} renderCal(); }
+function subscribeCalendar(){
+  window.open('webcal://oqyjixphmdrhcmomskth.supabase.co/functions/v1/calendar','_blank');
+}
 function toggleCalDrop(){
   const drop=document.getElementById('calMonthDrop');
   if(drop.classList.contains('open')){drop.classList.remove('open');return;}
