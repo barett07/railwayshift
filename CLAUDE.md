@@ -62,6 +62,10 @@ URL param `?edit=1` enables edit-only UI elements (`.edit-only` class). Edit mod
 
 `images/` folder contains JPEG files named by shift number (e.g., `501.jpeg`, `544V.jpeg`, `575AV.jpeg`). Referenced as `images/{shiftId}.jpeg`. Missing images fail silently via `onerror="this.style.display='none'"`.
 
+## Collaboration Rules
+
+**Before writing any code**, discuss the change direction with the user and get explicit approval. Only start generating code when the user says "開始生成" or equivalent confirmation. Do not implement speculatively.
+
 ## Deployment
 
 Push to GitHub → GitHub Pages auto-deploys. No CI, no build step.
