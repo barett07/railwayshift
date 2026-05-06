@@ -782,9 +782,9 @@ function subscribeCalendar(){
 function toggleCalDrop(){
   const drop=document.getElementById('calMonthDrop');
   if(drop.classList.contains('open')){drop.classList.remove('open');return;}
-  const offsets=[-1,1,2,3];
-  drop.innerHTML=offsets.map(o=>{
-    let y=calY,m=calM+o;
+  const now=new Date(), ty=now.getFullYear(), tm=now.getMonth()+1;
+  drop.innerHTML=[-1,0,1,2].map(o=>{
+    let y=ty,m=tm+o;
     if(m>12){m-=12;y++;}else if(m<1){m+=12;y--;}
     return `<div class="cal-month-opt" onclick="jumpCalTo(${y},${m})">${y} 年 ${m} 月</div>`;
   }).join('');
