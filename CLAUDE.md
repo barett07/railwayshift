@@ -81,7 +81,29 @@ A Supabase Edge Function generates a live `.ics` feed for Apple Calendar subscri
 
 ## Excel Import
 
-`parseXLSX` (line ~1079) uses dynamic column detection — it scans the header row for column names rather than fixed offsets, so it handles files with extra leading columns (e.g., 1150323公告資料.xlsx). Required columns: `工作班`、`上班時間`、`下班時間`. Missing required columns show an error and abort without overwriting existing data.
+There are **two distinct Excel import flows**:
+
+### 1. Shift Definition Import (`parseXLSX`, line ~1079)
+Imports shift *definitions* (工作班 database). Used in the 工作班 tab (edit mode only). Dynamic column detection scans for `工作班`、`上班時間`、`下班時間` headers. Missing required columns abort without overwriting. State: `parsedXLSX`.
+
+### 2. Monthly Schedule Verification (`parseCheckXLSX` / `openCheckSchedule` / `doCheckSchedule`)
+Imports the company's monthly crew schedule Excel to verify against the app's computed schedule. UI button in calendar page (always visible, not edit-only). State: `_csData = { year, month, workers: [{name, id, days: {1:'550', 2:'休', ...}}] }`.
+
+**Parsing logic:**
+- Year/month auto-detected from title rows (民國 3-digit year → +1911; or Gregorian 4-digit; fallback: filename pattern)
+- Date header row = row with the most cells containing integers 1–31 (threshold: ≥20 hits)
+- Name in col 0 (may include `\n` + ID in same cell), ID in col 1
+- Skips rows with no shift data (weekday sub-headers, ID-only rows)
+- Stops at footer notes matching `/^[123][\.\、]|^注意/`
+- 衛接 (carry-over) column excluded automatically (non-numeric label)
+
+**Comparison rules:**
+| Excel value | Treated as | Flags mismatch when app says |
+|---|---|---|
+| 班次號 (e.g. `550`) | work, shiftId must match exactly | not 'work', or different shiftId |
+| `例假` | off | not 'off' |
+| `休` or `—` or blank | rest | 'work' or 'off' |
+| App type `leave`/`rest`/`standby` (no shift) | — | never flagged for rest/off Excel days |
 
 ## Collaboration Rules
 
