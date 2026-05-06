@@ -1087,6 +1087,24 @@ function parseXLSX(e){
       let hr=-1;
       for(let i=0;i<rows.length;i++){ if(rows[i].some(c=>String(c).trim()==='工作班')){hr=i;break;} }
       if(hr<0){document.getElementById('xlPrev').textContent='❌ 找不到「工作班」欄位';return;}
+      // Build column index map from header row
+      const colMap={};
+      rows[hr].forEach((h,i)=>{ const k=String(h).trim(); if(k) colMap[k]=i; });
+      // Check required columns
+      const required=['工作班','上班時間','下班時間'];
+      const missing=required.filter(k=>colMap[k]===undefined);
+      if(missing.length){document.getElementById('xlPrev').textContent='❌ 找不到欄位：'+missing.join('、');parsedXLSX=null;return;}
+      // Map optional columns with fallback aliases
+      const ci={
+        name:colMap['工作班'],
+        startTime:colMap['上班時間'],
+        endTime:colMap['下班時間'],
+        specialNote:colMap['工作班特定行駛']??colMap['特定行駛']??colMap['備註']??-1,
+        depTrain:colMap['上班車次']??-1,
+        depTime:colMap['開車時間']??-1,
+        arrTrain:colMap['下班車次']??-1,
+        arrTime:colMap['到達時間']??-1,
+      };
       const toT=v=>{
         if(!v&&v!==0)return '';
         const s=String(v).trim();
@@ -1096,23 +1114,23 @@ function parseXLSX(e){
       };
       parsedXLSX=[];
       for(let r=hr+1;r<rows.length;r++){
-        const row=rows[r], name=String(row[0]||'').trim();
+        const row=rows[r], name=String(row[ci.name]||'').trim();
         if(!name||name==='nan')continue;
-        const st=toT(row[1]),et=toT(row[2]);
-        const on=st&&et?(parseInt(et.split(':')[0])*60+parseInt(et.split(':')[1]))<(parseInt(st.split(':')[0])*60+parseInt(st.split(':')[1])):false;
+        const st=toT(row[ci.startTime]),et=toT(row[ci.endTime]);
         const ex=ST.shifts.find(s=>s.id===name)||{};
         parsedXLSX.push({id:name,name,startTime:st,endTime:et,
-          depTrain:String(row[6]||'').trim().replace('nan',''),
-          depTime:toT(row[7]),
-          arrTrain:String(row[8]||'').trim().replace('nan',''),
-          arrTime:toT(row[9]),
-          specialNote:String(row[4]||'').trim().replace('nan',''),
+          depTrain:ci.depTrain>=0?String(row[ci.depTrain]||'').trim().replace('nan',''):'',
+          depTime:ci.depTime>=0?toT(row[ci.depTime]):'',
+          arrTrain:ci.arrTrain>=0?String(row[ci.arrTrain]||'').trim().replace('nan',''):'',
+          arrTime:ci.arrTime>=0?toT(row[ci.arrTime]):'',
+          specialNote:ci.specialNote>=0?String(row[ci.specialNote]||'').trim().replace('nan',''):'',
           isOvernight:false,
           boardTime:ex.boardTime||'',
           alightTime:ex.alightTime||'',
           imageUrl:ex.imageUrl||'',
         });
       }
+      if(!parsedXLSX.length){document.getElementById('xlPrev').textContent='❌ 未找到任何有效工作班資料';parsedXLSX=null;return;}
       document.getElementById('xlPrev').textContent=`✅ 解析完成：${parsedXLSX.length} 個工作班，已設定的搭車時間將保留`;
     }catch(err){document.getElementById('xlPrev').textContent='❌ 解析失敗：'+err.message; parsedXLSX=null;}
   };
