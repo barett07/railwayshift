@@ -1163,7 +1163,7 @@ function showPage(name){
   const idx={home:0,calendar:1,schedule:2,shifts:3};
   document.querySelectorAll('.nav-tab')[idx[name]]?.classList.add('active');
   if(name==='home'){ homeOffset=0; renderHome(); }
-  if(name==='calendar'){ calY=new Date().getFullYear(); calM=new Date().getMonth()+1; renderCal(); calcLeaveStats(); }
+  if(name==='calendar'){ if(!calY||!calM){calY=new Date().getFullYear();calM=new Date().getMonth()+1;} renderCal(); calcLeaveStats(); }
   if(name==='schedule')renderSegs();
   if(name==='shifts')renderShifts();
 }
