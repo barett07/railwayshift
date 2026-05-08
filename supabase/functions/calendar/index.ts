@@ -87,7 +87,7 @@ Deno.serve(async () => {
           const dtStart = toIcsDate(ds, startTime);
           const dtEnd = toIcsDate(ds, endTime, spansMiddnight);
 
-          const summary = `${info.shiftId} 班`;
+          const summary = `${info.shiftId} 工作班`;
           const descParts = [];
           if (shift.depTrain) descParts.push(`首班：${shift.depTrain} ${shift.depTime || ''}`);
           if (shift.arrTrain) descParts.push(`末班：${shift.arrTrain} ${shift.arrTime || ''}`);
@@ -101,7 +101,7 @@ Deno.serve(async () => {
           lines.push(`SUMMARY:${escIcs(summary)}`);
           if (descParts.length) lines.push(`DESCRIPTION:${escIcs(descParts.join('\\n'))}`);
           lines.push('BEGIN:VALARM');
-          lines.push('TRIGGER:-PT30M');
+          lines.push('TRIGGER:-PT2H');
           lines.push('ACTION:DISPLAY');
           lines.push(`DESCRIPTION:${escIcs(summary)} 出發提醒`);
           lines.push('END:VALARM');
