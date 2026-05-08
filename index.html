@@ -1187,8 +1187,9 @@ function openCheckSchedule(){
       <input type="file" id="csFile" accept=".xlsx,.xls" style="color:var(--tx2);font-size:13px"></div>
     <div id="csPrev" style="font-size:12px;color:var(--tx3);margin-top:8px"></div>
     <div id="csNameWrap" style="display:none" class="fg">
-      <label class="fl">選擇你的姓名</label>
-      <select class="fs" id="csName"></select>
+      <label class="fl">輸入員工編號</label>
+      <input class="fs" id="csId" type="text" inputmode="numeric" maxlength="10" placeholder="例：0651692" oninput="lookupCsWorker()">
+      <div id="csNameResult" style="font-size:13px;margin-top:6px;min-height:20px"></div>
     </div>`,
     [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'開始核對',cls:'btn-primary',fn:'doCheckSchedule()'}]
   );
@@ -1264,10 +1265,11 @@ function parseCheckXLSX(e){
       }
       if(!workers.length){prev.textContent='❌ 未找到任何人員班表資料';_csData=null;return;}
       _csData={year,month,workers};
-      const sel=document.getElementById('csName');
-      sel.innerHTML=workers.map((w,i)=>`<option value="${i}">${w.name}${w.id?' ('+w.id+')':''}</option>`).join('');
       document.getElementById('csNameWrap').style.display='';
+      document.getElementById('csId').value='';
+      document.getElementById('csNameResult').textContent='';
       prev.innerHTML=`✅ ${year}年${p2(month)}月，共 ${workers.length} 人`;
+      setTimeout(()=>document.getElementById('csId').focus(),50);
     }catch(err){
       document.getElementById('csPrev').textContent='❌ 解析失敗：'+err.message;
       _csData=null;
@@ -1276,11 +1278,21 @@ function parseCheckXLSX(e){
   reader.readAsArrayBuffer(file);
 }
 
+function lookupCsWorker(){
+  const idVal=document.getElementById('csId').value.trim();
+  const el=document.getElementById('csNameResult');
+  if(!idVal){el.textContent='';return;}
+  const w=_csData?.workers.find(w=>String(w.id).trim()===idVal);
+  el.innerHTML=w
+    ?`<span style="color:var(--g)">✓ ${w.name}</span>`
+    :`<span style="color:var(--r)">查無此員工編號</span>`;
+}
+
 function doCheckSchedule(){
   if(!_csData){toast('請先選擇 Excel 檔案','err');return;}
-  const sel=document.getElementById('csName');
-  const worker=_csData.workers[parseInt(sel?.value||0)];
-  if(!worker){toast('請選擇姓名','err');return;}
+  const idVal=document.getElementById('csId')?.value.trim();
+  const worker=_csData.workers.find(w=>String(w.id).trim()===idVal);
+  if(!worker){toast('請輸入正確的員工編號','err');return;}
   const {year,month}=_csData;
   const totalDays=daysInMonth(year,month);
   const errors=[];
