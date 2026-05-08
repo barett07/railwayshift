@@ -1266,10 +1266,9 @@ function parseCheckXLSX(e){
       if(!workers.length){prev.textContent='❌ 未找到任何人員班表資料';_csData=null;return;}
       _csData={year,month,workers};
       document.getElementById('csNameWrap').style.display='';
-      document.getElementById('csId').value='';
-      document.getElementById('csNameResult').textContent='';
+      document.getElementById('csId').value='0651692';
       prev.innerHTML=`✅ ${year}年${p2(month)}月，共 ${workers.length} 人`;
-      setTimeout(()=>document.getElementById('csId').focus(),50);
+      lookupCsWorker();
     }catch(err){
       document.getElementById('csPrev').textContent='❌ 解析失敗：'+err.message;
       _csData=null;
