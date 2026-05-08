@@ -15,9 +15,7 @@ function diffDays(a: string, b: string) {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
 }
 
-function daysInMonth(y: number, m: number) { return new Date(y, m, 0).getDate(); }
-
-function getDayInfo(ds: string, shifts: any[], segments: any[], exceptions: any) {
+function getDayInfo(ds: string, segments: any[], exceptions: any) {
   const ex = exceptions?.[ds];
   if (ex) return ex;
   const seg = segments.find((s: any) => s.startDate <= ds && s.endDate >= ds);
@@ -30,10 +28,17 @@ function getDayInfo(ds: string, shifts: any[], segments: any[], exceptions: any)
   return seg.cycle[idx] ?? { type: 'unknown' };
 }
 
-function toIcsDate(dateStr: string, timeStr: string, isNextDay = false) {
+// Find shift by id, with fallback to strip variant suffix (e.g. 576V → 576)
+function findShift(shiftId: string, shiftMap: Record<string, any>) {
+  if (shiftMap[shiftId]) return shiftMap[shiftId];
+  const base = shiftId.replace(/V$|AV$/, '');
+  return shiftMap[base] ?? null;
+}
+
+function toIcsDate(dateStr: string, timeStr: string, nextDay = false) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const [hh, mm] = timeStr.split(':').map(Number);
-  const date = new Date(y, m - 1, d + (isNextDay ? 1 : 0), hh, mm);
+  const date = new Date(y, m - 1, d + (nextDay ? 1 : 0), hh, mm);
   return `${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}T${p2(date.getHours())}${p2(date.getMinutes())}00`;
 }
 
@@ -46,9 +51,8 @@ Deno.serve(async () => {
     fetchAppData('exceptions'),
   ]);
 
-  const shiftMap = Object.fromEntries((shifts ?? []).map((s: any) => [s.id, s]));
+  const shiftMap: Record<string, any> = Object.fromEntries((shifts ?? []).map((s: any) => [s.id, s]));
 
-  // Generate events for 3 months back to 12 months ahead
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   const end = new Date(now.getFullYear(), now.getMonth() + 13, 0);
@@ -68,34 +72,30 @@ Deno.serve(async () => {
   const cur = new Date(start);
   while (cur <= end) {
     const ds = `${cur.getFullYear()}-${p2(cur.getMonth()+1)}-${p2(cur.getDate())}`;
-    const info = getDayInfo(ds, shifts ?? [], segments ?? [], exceptions ?? {});
+    const info = getDayInfo(ds, segments ?? [], exceptions ?? {});
 
     if (info.type === 'work' && info.shiftId) {
-      const shift = shiftMap[info.shiftId];
+      const shift = findShift(info.shiftId, shiftMap);
       if (shift) {
         const startTime = info.customStart || shift.startTime || '';
-        const boardTime = info.customBoard || shift.boardTime || '';
         const endTime = shift.endTime || '';
-        const alightTime = info.customAlight || shift.alightTime || '';
 
         if (startTime && endTime) {
-          const eventStart = boardTime || startTime;
-          const eventEnd = alightTime || endTime;
-          const isOvernight = shift.isOvernight ?? false;
+          // Determine if event spans midnight by comparing time strings
+          const spansMiddnight = endTime <= startTime;
 
-          const dtStart = toIcsDate(ds, eventStart);
-          const dtEnd = toIcsDate(ds, eventEnd, isOvernight && eventEnd <= eventStart);
+          const dtStart = toIcsDate(ds, startTime);
+          const dtEnd = toIcsDate(ds, endTime, spansMiddnight);
 
-          const summary = `${shift.name} 班`;
+          const summary = `${info.shiftId} 班`;
           const descParts = [];
           if (shift.depTrain) descParts.push(`首班：${shift.depTrain} ${shift.depTime || ''}`);
           if (shift.arrTrain) descParts.push(`末班：${shift.arrTrain} ${shift.arrTime || ''}`);
           if (shift.specialNote) descParts.push(shift.specialNote);
-
-          const uid = `${ds}-${info.shiftId}@railwayshift`;
+          if (info.note) descParts.push(info.note);
 
           lines.push('BEGIN:VEVENT');
-          lines.push(`UID:${uid}`);
+          lines.push(`UID:${ds}-${info.shiftId}@railwayshift`);
           lines.push(`DTSTART;TZID=Asia/Taipei:${dtStart}`);
           lines.push(`DTEND;TZID=Asia/Taipei:${dtEnd}`);
           lines.push(`SUMMARY:${escIcs(summary)}`);

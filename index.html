@@ -1246,8 +1246,8 @@ function parseCheckXLSX(e){
         if(!name)continue;
         // 跳過星期子標題列
         if(/^[日一二三四五六衛接\s]+$/.test(name))continue;
-        // 遇到注意事項停止
-        if(/^[123][\.\、]|^注意/.test(name))break;
+        // 跳過注意事項列（每區塊結尾），繼續讀下一區塊
+        if(/^[123][\.\、]|^注意/.test(name))continue;
         // 確認這列有班次資料（不是純 ID 子列）
         let hasData=false;
         for(let d=1;d<=maxDay;d++){
