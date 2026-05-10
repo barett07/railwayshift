@@ -52,7 +52,6 @@ Variant shifts use suffix notation: `544V`, `510AV`, `575AV`.
 
 - `getDayInfo(ds)` — resolves a date string to day info. Checks exceptions first, then finds the active segment, then computes cycle position via `diffDays(seg.startDate, ds) % cycle.length`.
 - `buildShiftMap()` — builds `ST._shiftMap` for O(1) shift lookup by id.
-- `BUILTIN` — hardcoded array of ~100 shifts embedded in the JS (from Excel 114/03/30). Used as fallback when Supabase has no shift data.
 
 ## Edit Mode
 
