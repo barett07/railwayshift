@@ -582,20 +582,20 @@ function buildDayCard(ds,label,isToday){
       </div>`;
     }
   }
-  const clearBtn=info.isEx?`<button class="btn-sm warn" onclick="clearEx('${ds}')">↩ 還原</button>`:'';
   return `<div class="day-card ${isToday?'is-today':''} ${info.isEx?'is-ex':''}">
     <div class="dc-head" style="align-items:center">
       <div><div class="dc-label">${label}</div><div class="dc-date">${ds}</div><div class="dc-wd">星期${wd(ds)}</div></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;align-self:center">
         <span class="badge ${bcls}" style="font-size:14px;padding:6px 14px">${TL[info.type]||'—'}</span>${exTag}
+        <button class="btn-sm" onclick="openExModal('${ds}')" style="font-size:12px;opacity:0.7">✏️ 臨時修改</button>
       </div>
     </div>
     ${body}
-    <div class="dc-foot">${EDIT_MODE?`<button class="btn-sm" onclick="openExModal('${ds}')">✏️ 臨時修改</button>${clearBtn}`:''}</div>
   </div>`;
 }
 
 function clearEx(ds){ if(!confirm('還原為原排班？'))return; pushException(ds,null).then(()=>{renderHome();renderCal();toast('已還原','ok');}); }
+function clearExFromModal(ds){ closeM(); pushException(ds,null).then(()=>{renderHome();renderCal();toast('已還原','ok');}); }
 
 // ══════════════════════════════════════════════
 // EXCEPTION MODAL
@@ -661,7 +661,7 @@ function openExModal(ds){
     </div>
     <div class="fg"><label class="fl">備注</label>
       <textarea class="fta" id="exN" placeholder="輸入備注（選填）">${note}</textarea></div>`,
-    [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存',cls:'btn-primary',fn:`saveEx('${ds}')`}],
+    [...(info.isEx?[{label:'清除修改',cls:'btn-secondary warn',fn:`clearExFromModal('${ds}')`}]:[]),{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'儲存',cls:'btn-primary',fn:`saveEx('${ds}')`}],
     true
   );
   // Set correct state after render
@@ -750,7 +750,7 @@ function renderCal(){
     h+=`<div class="cal-cell ${cls} ${ds===today?'today':''}" onclick="goToDate('${ds}')" style="cursor:pointer">
       ${info.isEx?'<div class="cc-ex"></div>':''}
       <div class="cc-day">${d}</div>
-      <div class="cc-type">${TL[info.type]||''}</div>
+      <div class="cc-type">${info.type==='off'?'例假':info.type==='rest'?'休班':info.type==='work'?'':(TL[info.type]||'')}</div>
       ${shiftName?`<div class="cc-shift">${shiftName}</div>`:''}
       ${shiftName&&board?`<div class="cc-time">↑${board}</div>`:''}
     </div>`;
