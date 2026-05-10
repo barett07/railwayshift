@@ -587,7 +587,7 @@ function buildDayCard(ds,label,isToday){
       <div><div class="dc-label">${label}</div><div class="dc-date">${ds}</div><div class="dc-wd">星期${wd(ds)}</div></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;align-self:center">
         <span class="badge ${bcls}" style="font-size:14px;padding:6px 14px">${TL[info.type]||'—'}</span>${exTag}
-        <button class="btn-sm" onclick="openExModal('${ds}')" style="font-size:12px;opacity:0.7">✏️ 臨時修改</button>
+        <span onclick="openExModal('${ds}')" style="cursor:pointer;font-size:12px;${info.isEx?'color:#22d3ee':'color:var(--tx3)'}">${info.isEx?'✅ 已臨時修改':'✏️ 臨時修改'}</span>
       </div>
     </div>
     ${body}
