@@ -64,6 +64,30 @@ Variant shifts use suffix notation: `544V`, `510AV`, `575AV`.
 | 備勤左色條 | `--p` | `#a855f7` |
 | 已臨時修改文字 | inline | `#22d3ee`（青藍） |
 
+## UI/UX 行動裝置規範（重要）
+
+修改 CSS 前務必遵守以下規則，否則 mobile Safari 體驗會嚴重劣化：
+
+### 1. 表單輸入框字體 ≥ 16px
+所有 `.fi, .fs, .fta, .srch` 字體**必須 ≥ 16px**。iOS Safari 對字體 < 16px 的 input 會自動放大頁面，造成體驗破壞。
+
+### 2. 觸控目標 ≥ 36-40px
+按鈕類元素需要 `min-height`：`.nav-tab`、`.btn`、`.btn-sm` ≥ 40px；`.filter-btn` ≥ 36px。
+
+### 3. 鍵盤焦點外框（`:focus-visible`）
+全域 `:focus-visible` 規則只在鍵盤導航時顯示橘色外框，不影響滑鼠/觸控 — **不要用 `:focus` 設外框**（會被觸控觸發殘留）。
+
+### 4. 觸控裝置 `:hover` 殘留（最易踩雷）
+
+mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」（觸控裝置無「滑鼠離開」事件）。修法：CSS 末尾的 `@media (hover: none)` 區塊把所有 `:hover` 規則 reset 到「未 hover」狀態。
+
+**🚨 必讀規則**：
+- reset 區塊**必須放在所有 `:hover` 規則之後**（CSS「後者勝出」原則），否則被原本的 `:hover` 規則覆蓋
+- 目前位置：CSS 末尾、`@media(max-width:580px)` 之前
+- **新增任何 `:hover` 規則時**，必須同時在 reset 區塊內加對應的 reset 行（reset 為該元素的「未 hover」狀態值）
+
+範例：新增 `.foo:hover{color:var(--acc)}`（base 是 `color:var(--tx)`），就要在 reset 加 `.foo:hover{color:var(--tx)}`。
+
 ## Day Card（首頁班卡）
 
 - **臨時修改**按鈕放在 `dc-head` 右欄（badge 下方），永遠顯示，無外框純文字
@@ -87,6 +111,43 @@ Variant shifts use suffix notation: `544V`, `510AV`, `575AV`.
 ## Edit Mode
 
 URL param `?edit=1` enables edit-only UI elements (`.edit-only` class). Edit mode shows "排班設定" and "工作班" nav tabs, and exposes day-card action buttons.
+
+## Compact Mode（`?compact=1`）— Apple Watch 用
+
+URL 參數 `?compact=1` 啟用「精簡模式」，給 Apple Watch 透過 iOS 捷徑開啟使用（Stan 主要在 Watch 上看當日/明日班次）。
+
+- JS：`COMPACT_MODE` 常數，在 `showApp()` 中為 `#app` 加上 `.compact-mode` class
+- CSS 規則放在 `/* COMPACT MODE */` 區塊
+- 隱藏 `.topbar` 與所有 `.edit-only` 元素
+- **關鍵規則**：`.compact-mode .dc-body > *:not(.shift-img):not(.day-note){display:none !important}` — 班卡只留圖片與備註，文字資訊（班號、時間、搭車時間）全部隱藏
+- 隱藏 `.ex-toggle`（臨時修改按鈕）— Stan 不在 Watch 上操作
+- 字體放大、強制單欄、`.cal-nav-btn` 加大到 44×44 便於切換前/後一天
+
+部署用 URL：`https://barett07.github.io/railwayshift/?compact=1`
+
+## 通勤資訊與 TDX 整合（規劃中）
+
+為「臺鐵改點後自動更新搭車時間」做的鋪墊。Stan 已申請 TDX 公部門會員（2026-05-17 送審，約 3 個工作天），通過後接續實作。
+
+### 已完成（資料層與 UI）
+
+- **資料結構**：`ST.commuteConfig = { fromStation, toStation, bufferMin, trainTypes }`
+- **Supabase key**：`commute_config`（同 `shifts/segments/exceptions` 走 `app_data` 表）
+- **localStorage key**：`rw2_commute_config`
+- **車站清單**：`TRA_STATIONS` 常數，硬編碼約 200 個臺鐵營運站（含支線），按路線排列供 `<datalist>` autocomplete
+- **UI 位置**：工作班頁面頂部 `#commuteCard`（僅 `?edit=1` 看得到），編輯函式 `openCommuteEdit()` / `saveCommuteConfig()` / `renderCommuteCard()`
+- **同步函式**：`pushCommuteConfig()`
+
+### 待辦（TDX 通過後）
+
+1. 建 Supabase Edge Function `tdx-search` 代理 TDX OAuth2 + 查詢車次（避免 Client Secret 暴露於前端）
+2. 工作班編輯 Modal 加「🚆 查台鐵」按鈕，依「上班時間 − bufferMin」自動找最後一班能準時抵達的車
+3. 工作班頁面加「🔄 全部重抓台鐵時刻」批次更新（含「舊→新」勾選預覽表）
+
+### CSS Class 命名避坑
+
+- **`.cc-type`**：月曆 cell 的類型文字（「例假」「休班」等），CSS 已定義樣式
+- **`.commute-type-cb`**：通勤 Modal 的車種 checkbox（不可改用 `.cc-type`，會被月曆樣式污染）
 
 ## Images
 
@@ -173,3 +234,11 @@ git add index.html images/
 git commit -m "your message"
 git push
 ```
+
+## 發布流程（三步驟，不可跳過）
+
+程式碼完成後，**依序執行以下三步**，不可合併或跳過：
+
+1. **網頁預覽確認** — 先讓 Stan 在瀏覽器中預覽變更，確認畫面與行為符合預期
+2. **git commit** — Stan 確認沒問題後，才進行版本控制（`git add` + `git commit`）
+3. **git push** — commit 完成後，再由 Stan 明確說「推上去」才執行 `git push`

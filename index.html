@@ -248,6 +248,23 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 ::-webkit-scrollbar-track{background:var(--s1)}
 ::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
 
+/* 觸控裝置：取消 hover 視覺殘留（手機/平板點完按鈕後狀態不會卡住）
+   注意：此區塊必須放在所有 :hover 規則之後，才能正確 override */
+@media (hover: none) {
+  .nav-tab:hover{color:var(--tx3)}
+  .btn-sm:hover{border-color:var(--bdr2);color:var(--tx2)}
+  .btn-sm.warn:hover{background:transparent}
+  .btn-primary:hover{background:var(--acc)}
+  .btn-secondary:hover{border-color:var(--bdr2)}
+  .btn-ghost:hover{border-color:var(--bdr2);color:var(--tx2)}
+  .ic-btn:hover{border-color:var(--bdr);color:var(--tx3)}
+  .ic-btn.del:hover{border-color:var(--bdr);color:var(--tx3)}
+  .sb-day:hover{border-color:var(--bdr)}
+  .cal-nav-btn:hover{border-color:var(--bdr2);color:var(--tx)}
+  .cal-title:hover{color:inherit}
+  .cal-month-opt:hover{background:transparent}
+}
+
 @media(max-width:580px){
   .main{padding:14px 11px}
   .cal-cell{min-height:60px}
