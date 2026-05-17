@@ -26,7 +26,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .topbar{background:var(--s1);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;height:54px}
 .brand{display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px;color:var(--acc);white-space:nowrap}
 .nav-tabs{display:flex;gap:1px;flex:1;overflow-x:auto}
-.nav-tab{background:none;border:none;cursor:pointer;color:var(--tx3);padding:6px 12px;font-size:12px;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.nav-tab{background:none;border:none;cursor:pointer;color:var(--tx3);padding:9px 12px;font-size:13px;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0;min-height:40px}
 .nav-tab:hover{color:var(--tx2)}
 .nav-tab.active{color:var(--acc);border-bottom-color:var(--acc)}
 .status-wrap{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -78,7 +78,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .no-work-sub{font-size:12px;color:var(--tx3);margin-top:4px}
 
 .dc-foot{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:7px}
-.btn-sm{flex:1;background:none;border:1px solid var(--bdr2);color:var(--tx2);padding:7px 8px;border-radius:var(--rad-s);cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px}
+.btn-sm{flex:1;background:none;border:1px solid var(--bdr2);color:var(--tx2);padding:10px 8px;border-radius:var(--rad-s);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px;min-height:40px}
 .btn-sm:hover{border-color:var(--acc);color:var(--acc)}
 .btn-sm.warn{border-color:rgba(239,68,68,.3);color:var(--r)}
 .btn-sm.warn:hover{background:var(--r-d)}
@@ -95,7 +95,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 /* FORMS */
 .fg{margin-bottom:14px}
 .fl{display:block;font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-weight:700}
-.fi,.fs,.fta{width:100%;background:var(--s2);border:1px solid var(--bdr2);color:var(--tx);padding:8px 11px;border-radius:var(--rad-s);font-family:inherit;font-size:13px;transition:border-color .15s}
+.fi,.fs,.fta{width:100%;background:var(--s2);border:1px solid var(--bdr2);color:var(--tx);padding:9px 11px;border-radius:var(--rad-s);font-family:inherit;font-size:16px;transition:border-color .15s}
 .fi:focus,.fs:focus,.fta:focus{outline:none;border-color:var(--acc)}
 .fta{resize:vertical;min-height:72px}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -103,7 +103,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .fcheck{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rad-s);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:var(--rad-s);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:all .15s;min-height:40px}
 .btn-primary{background:var(--acc);color:#0a0c10;border-color:var(--acc)}
 .btn-primary:hover{background:var(--acc2)}
 .btn-secondary{background:var(--s2);color:var(--tx);border-color:var(--bdr2)}
@@ -111,6 +111,10 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .btn-ghost{background:none;color:var(--tx2);border-color:var(--bdr2)}
 .btn-ghost:hover{border-color:var(--tx2);color:var(--tx)}
 .btn-danger{background:var(--r-d);color:var(--r);border-color:rgba(239,68,68,.3)}
+
+/* 鍵盤焦點外框（只在鍵盤導航時出現） */
+button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-visible,.filter-btn:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:var(--rad-s)}
+.fi:focus-visible,.fs:focus-visible,.fta:focus-visible,.srch:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 
 /* SECTION */
 .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:9px}
@@ -180,9 +184,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 
 /* SHIFTS DB */
 .shift-filter-row{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-.filter-btn{background:var(--s2);border:1px solid var(--bdr);color:var(--tx3);padding:4px 11px;border-radius:999px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+.filter-btn{background:var(--s2);border:1px solid var(--bdr);color:var(--tx3);padding:8px 14px;border-radius:999px;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s;min-height:36px}
 .filter-btn.active{background:var(--acc-d);border-color:var(--acc);color:var(--acc)}
-.srch{flex:1;min-width:160px;background:var(--s2);border:1px solid var(--bdr2);color:var(--tx);padding:6px 11px;border-radius:var(--rad-s);font-family:inherit;font-size:13px}
+.srch{flex:1;min-width:160px;background:var(--s2);border:1px solid var(--bdr2);color:var(--tx);padding:8px 11px;border-radius:var(--rad-s);font-family:inherit;font-size:16px}
 .srch:focus{outline:none;border-color:var(--acc)}
 .shifts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:9px}
 .sc{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--rad-s);padding:13px;border-left-width:3px;border-left-color:var(--acc)}
@@ -213,6 +217,28 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .spinner{width:36px;height:36px;border:3px solid var(--bdr2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-txt{font-size:13px;color:var(--tx3)}
+
+/* COMPACT MODE — 給 Apple Watch 透過 ?compact=1 使用 */
+.compact-mode .topbar{display:none}
+.compact-mode .main{padding:10px 8px;max-width:none}
+.compact-mode .day-grid{grid-template-columns:1fr;gap:10px}
+.compact-mode .day-card{border-radius:10px}
+.compact-mode .dc-head{padding:10px 12px 8px}
+.compact-mode .dc-label{font-size:11px}
+.compact-mode .dc-date{font-size:16px}
+.compact-mode .dc-wd{font-size:12px}
+.compact-mode .badge{font-size:13px !important;padding:5px 12px !important}
+.compact-mode .ex-toggle{display:none}
+.compact-mode .dc-body{padding:10px}
+.compact-mode .dc-body > *:not(.shift-img):not(.day-note){display:none !important}
+.compact-mode .day-note{font-size:13px;padding:9px 12px}
+.compact-mode .no-work{padding:30px 16px}
+.compact-mode .no-work-label{font-size:16px}
+.compact-mode .no-work-sub{font-size:13px}
+.compact-mode .cal-nav-btn{min-width:44px;min-height:44px}
+.compact-mode #homeLabel{font-size:11px}
+.compact-mode #todayDisp{font-size:14px}
+.compact-mode .shift-img{margin-top:10px;border-radius:6px}
 
 /* MISC */
 .sep{height:1px;background:var(--bdr);margin:14px 0}
@@ -257,12 +283,12 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <!-- HOME -->
     <div id="page-home" class="page active">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <button class="cal-nav-btn" onclick="homeMove(-1)">‹</button>
+        <button class="cal-nav-btn" onclick="homeMove(-1)" aria-label="前一天">‹</button>
         <div style="text-align:center">
           <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em" id="homeLabel">今日 / 明日</div>
           <div id="todayDisp" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;margin-top:2px">—</div>
         </div>
-        <button class="cal-nav-btn" onclick="homeMove(1)">›</button>
+        <button class="cal-nav-btn" onclick="homeMove(1)" aria-label="後一天">›</button>
       </div>
       <div class="day-grid" id="dayCards"></div>
     </div>
@@ -270,12 +296,12 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <!-- CALENDAR -->
     <div id="page-calendar" class="page">
       <div class="cal-nav">
-        <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+        <button class="cal-nav-btn" onclick="calMove(-1)" aria-label="上一個月">‹</button>
         <div class="cal-nav-wrap">
           <div class="cal-title" id="calTitle" onclick="toggleCalDrop()"></div>
           <div class="cal-month-drop" id="calMonthDrop"></div>
         </div>
-        <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+        <button class="cal-nav-btn" onclick="calMove(1)" aria-label="下一個月">›</button>
       </div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-legend">
@@ -321,6 +347,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
           <button class="btn btn-primary" onclick="openEditShift(null)">＋ 手動新增</button>
         </div>
       </div>
+      <div id="commuteCard" class="card" style="margin-bottom:14px"></div>
       <div class="shift-filter-row">
         <input class="srch" id="shiftSrch" type="text" placeholder="🔍 搜尋班號..." oninput="renderShifts()">
         <button class="filter-btn active" onclick="setFilter(this,'all')">全部</button>
@@ -350,6 +377,7 @@ const SUPABASE_URL     = 'https://oqyjixphmdrhcmomskth.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xeWppeHBobWRyaGNtb21za3RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTQzMzEsImV4cCI6MjA5MjUzMDMzMX0.TfsdVXmN_lhy3fM2LlZ27MAPIhRI-8agSVXiycvaGis';
 const IMAGE_BASE       = 'images/';   // GitHub repo 圖片資料夾
 const EDIT_MODE = new URLSearchParams(window.location.search).get('edit') === '1';
+const COMPACT_MODE = new URLSearchParams(window.location.search).get('compact') === '1';
 
 // ══════════════════════════════════════════════
 
@@ -357,10 +385,36 @@ const EDIT_MODE = new URLSearchParams(window.location.search).get('edit') === '1
 // STATE
 // ══════════════════════════════════════════════
 let dbReady = false;
-let ST = { shifts: [], segments: [], exceptions: {} };
+let ST = { shifts: [], segments: [], exceptions: {}, commuteConfig: null };
 let calY = new Date().getFullYear(), calM = new Date().getMonth() + 1;
 let shiftFilter = 'all', parsedXLSX = null, homeOffset = 0, _csData = null;
 let _editSegId = '', _editCycle = [];
+
+// ══════════════════════════════════════════════
+// 臺鐵車站清單（按路線排列，供 autocomplete 使用）
+// 註：站名以臺鐵官方使用的繁體中文為準；TDX 接通後可改用 API 動態載入
+// ══════════════════════════════════════════════
+const TRA_STATIONS = [
+  // 縱貫線北段（基隆-竹南）
+  '基隆','三坑','八堵','七堵','百福','五堵','汐止','汐科','南港','松山','臺北','萬華',
+  '板橋','浮洲','樹林','南樹林','山佳','鶯歌','桃園','內壢','中壢','埔心','楊梅','富岡','北湖','湖口',
+  '新豐','竹北','北新竹','新竹','三姓橋','香山','崎頂','竹南',
+  // 海岸線
+  '談文','大山','後龍','龍港','白沙屯','新埔','通霄','苑裡','日南','大甲','臺中港','清水','沙鹿','龍井','大肚','追分',
+  // 臺中線（山線）
+  '造橋','豐富','苗栗','南勢','銅鑼','三義','泰安','后里','豐原','栗林','潭子','頭家厝','松竹','太原','精武','臺中','五權','大慶','烏日','新烏日',
+  // 縱貫線南段（彰化-高雄）
+  '成功','彰化','花壇','大村','員林','永靖','社頭','田中','二水','林內','石榴','斗六','斗南','石龜','大林','民雄','嘉北','嘉義','水上','南靖','後壁','新營','柳營','林鳳營','隆田','拔林','善化','南科','新市','永康','大橋','臺南','保安','仁德','中洲','大湖','路竹','岡山','橋頭','楠梓','新左營','左營','高雄',
+  // 屏東線、南迴線
+  '三塊厝','鼓山','美術館','內惟','民族','科工館','正義','鳳山','後庄','九曲堂','六塊厝','屏東','歸來','麟洛','西勢','竹田','潮州','崁頂','南州','鎮安','林邊','佳冬','東海','枋寮','加祿','內獅','枋山','枋野','中央','古莊','大武','瀧溪','金崙','太麻里','知本','康樂','臺東',
+  // 宜蘭線、北迴線、臺東線
+  '暖暖','四腳亭','瑞芳','猴硐','三貂嶺','牡丹','雙溪','貢寮','福隆','石城','大里','大溪','龜山','外澳','頭城','頂埔','礁溪','四城','宜蘭','二結','中里','羅東','冬山','新馬','蘇澳新','蘇澳','永樂','東澳','南澳','武塔','漢本','和平','和仁','崇德','新城','景美','北埔','花蓮','吉安','志學','平和','壽豐','豐田','林榮新光','南平','鳳林','萬榮','光復','大富','富源','瑞穗','三民','玉里','東里','東竹','富里','池上','海端','關山','瑞和','瑞源','鹿野','山里',
+  // 支線
+  '源泉','濁水','龍泉','集集','水里','車埕',
+  '大華','十分','望古','嶺腳','平溪','菁桐',
+  '千甲','新莊','竹中','上員','榮華','竹東','橫山','九讚頭','合興','富貴','內灣','六家',
+  '長榮大學','沙崙'
+];
 
 // ══════════════════════════════════════════════
 // SUPABASE REST API (no CDN required)
@@ -383,6 +437,7 @@ async function loadRemote(){
   ST.shifts = (map.shifts && map.shifts.length) ? map.shifts : [];
   ST.segments = map.segments || [];
   ST.exceptions = map.exceptions || {};
+  ST.commuteConfig = map.commute_config || null;
   buildShiftMap();
 }
 async function dbSet(key, value){
@@ -433,12 +488,18 @@ async function pushException(ds, data){
   if(!dbReady) return;
   try{ await dbSet('exceptions', ST.exceptions); }catch(e){ console.error('pushException:', e.message); }
 }
+async function pushCommuteConfig(){
+  saveLocal();
+  if(!dbReady) return;
+  try{ await dbSet('commute_config', ST.commuteConfig); }catch(e){ console.error('pushCommuteConfig:', e.message); }
+}
 function loadLocal(){
   setStatus(false);
   try{
     const sh=localStorage.getItem('rw2_shifts'); ST.shifts=sh?JSON.parse(sh):[];
     const seg=localStorage.getItem('rw2_segments'); ST.segments=seg?JSON.parse(seg):[];
     const ex=localStorage.getItem('rw2_exceptions'); ST.exceptions=ex?JSON.parse(ex):{};
+    const cc=localStorage.getItem('rw2_commute_config'); ST.commuteConfig=cc?JSON.parse(cc):null;
   }catch{ ST.shifts=[]; }
   buildShiftMap();
 }
@@ -447,6 +508,7 @@ function saveLocal(){
     localStorage.setItem('rw2_shifts',JSON.stringify(ST.shifts));
     localStorage.setItem('rw2_segments',JSON.stringify(ST.segments));
     localStorage.setItem('rw2_exceptions',JSON.stringify(ST.exceptions));
+    localStorage.setItem('rw2_commute_config',JSON.stringify(ST.commuteConfig));
   }catch{}
 }
 
@@ -587,7 +649,7 @@ function buildDayCard(ds,label,isToday){
       <div><div class="dc-label">${label}</div><div class="dc-date">${ds}</div><div class="dc-wd">星期${wd(ds)}</div></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;align-self:center">
         <span class="badge ${bcls}" style="font-size:14px;padding:6px 14px">${TL[info.type]||'—'}</span>${exTag}
-        <span onclick="openExModal('${ds}')" style="cursor:pointer;font-size:12px;${info.isEx?'color:#22d3ee':'color:var(--tx3)'}">${info.isEx?'✅ 已臨時修改':'✏️ 臨時修改'}</span>
+        <span class="ex-toggle" onclick="openExModal('${ds}')" style="cursor:pointer;font-size:12px;${info.isEx?'color:#22d3ee':'color:var(--tx3)'}">${info.isEx?'✅ 已臨時修改':'✏️ 臨時修改'}</span>
       </div>
     </div>
     ${body}
@@ -1019,7 +1081,7 @@ function renderShifts(){
       ${s.imageUrl?`<img class="sc-thumb" src="${s.imageUrl}" alt="">`:''}
       <div class="sc-foot">
         <button class="btn-sm" onclick="openEditShift('${s.id}')">✏️ 編輯</button>
-        <button class="btn-sm warn" onclick="deleteShift('${s.id}')">🗑</button>
+        <button class="btn-sm warn" onclick="deleteShift('${s.id}')" aria-label="刪除班次 ${s.name}">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -1090,6 +1152,95 @@ function saveShift(id){
   pushShifts().then(()=>{renderShifts();closeM();toast('已儲存','ok');});
 }
 function deleteShift(id){ if(!confirm('確定刪除？'))return; ST.shifts=ST.shifts.filter(s=>s.id!==id); pushShifts().then(()=>{renderShifts();toast('已刪除','ok');}); }
+
+// ══════════════════════════════════════════════
+// 通勤資訊（自動查詢台鐵車次的個人設定）
+// ══════════════════════════════════════════════
+const TRAIN_TYPES_ALL = ['自強','莒光','區間','區間快','普悠瑪','太魯閣'];
+function getCommuteConfig(){
+  return ST.commuteConfig || { fromStation:'', toStation:'', bufferMin:6, trainTypes:[...TRAIN_TYPES_ALL] };
+}
+function renderCommuteCard(){
+  const el=document.getElementById('commuteCard');
+  if(!el) return;
+  const c=getCommuteConfig();
+  const isSet=c.fromStation && c.toStation;
+  const types=(c.trainTypes&&c.trainTypes.length)?c.trainTypes:TRAIN_TYPES_ALL;
+  const allTypes=types.length===TRAIN_TYPES_ALL.length;
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:6px">🚆 我的通勤資訊</div>
+        ${isSet?`
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2)">
+            <div><span style="color:var(--tx3)">路線</span>　<b style="color:var(--tx);font-family:'DM Mono',monospace">${c.fromStation} → ${c.toStation}</b></div>
+            <div><span style="color:var(--tx3)">緩衝</span>　<b style="color:var(--tx)">${c.bufferMin} 分鐘</b></div>
+            <div><span style="color:var(--tx3)">車種</span>　<b style="color:var(--tx)">${allTypes?'全部':types.join('、')}</b></div>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:6px">用於從台鐵自動查詢搭車時間（TDX 審查中，預計開通後啟用）</div>
+        `:`
+          <div style="font-size:12px;color:var(--tx3)">尚未設定通勤路線。設定後可從台鐵自動查詢搭車時間，省去手動輸入。</div>
+        `}
+      </div>
+      <button class="btn btn-secondary" style="font-size:12px;padding:7px 12px" onclick="openCommuteEdit()">${isSet?'✏️ 編輯':'＋ 設定通勤資訊'}</button>
+    </div>`;
+}
+function openCommuteEdit(){
+  const c=getCommuteConfig();
+  const types=(c.trainTypes&&c.trainTypes.length)?c.trainTypes:TRAIN_TYPES_ALL;
+  const opts=TRA_STATIONS.map(s=>`<option value="${s}">`).join('');
+  const typeBoxes=TRAIN_TYPES_ALL.map(t=>`
+    <label class="fcheck" style="background:var(--s2);border:1px solid var(--bdr2);padding:7px 10px;border-radius:var(--rad-s)">
+      <input type="checkbox" class="commute-type-cb" value="${t}" ${types.includes(t)?'checked':''}> ${t}
+    </label>`).join('');
+  setModal('🚆 我的通勤資訊',`
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">
+      設定一次，App 就能根據每個工作班的「上班時間」自動推算要搭哪班車。<br>
+      <span style="color:var(--tx2)">起站</span>：你從家附近上車的車站
+      <span style="color:var(--tx2)">迄站</span>：你下車去上班的車站
+    </div>
+    <datalist id="stationList">${opts}</datalist>
+    <div class="f2">
+      <div class="fg">
+        <label class="fl">🚉 起站（家附近）</label>
+        <input class="fi" id="ccFrom" list="stationList" value="${c.fromStation||''}" placeholder="例如：樹林" autocomplete="off">
+      </div>
+      <div class="fg">
+        <label class="fl">🏢 迄站（上班地點）</label>
+        <input class="fi" id="ccTo" list="stationList" value="${c.toStation||''}" placeholder="例如：七堵" autocomplete="off">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">⏱ 抵達緩衝分鐘</label>
+      <input class="fi" id="ccBuf" type="number" min="0" max="60" value="${c.bufferMin??6}" style="max-width:120px">
+      <div class="fhint">下車後到單位的步行時間 + 提前報到時間，App 會用「上班時間 − 緩衝」當作最晚抵達時間</div>
+    </div>
+    <div class="fg">
+      <label class="fl">🚄 車種偏好（可複選）</label>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">${typeBoxes}</div>
+      <div class="fhint">未勾選的車種不會出現在自動查詢結果裡</div>
+    </div>`,
+    [
+      {label:'取消',cls:'btn-secondary',fn:'closeM()'},
+      {label:'儲存',cls:'btn-primary',fn:'saveCommuteConfig()'}
+    ],
+    true
+  );
+}
+function saveCommuteConfig(){
+  const from=document.getElementById('ccFrom').value.trim();
+  const to=document.getElementById('ccTo').value.trim();
+  const buf=parseInt(document.getElementById('ccBuf').value,10);
+  const types=[...document.querySelectorAll('.commute-type-cb:checked')].map(el=>el.value);
+  if(!from||!to){ toast('請輸入起站與迄站','err'); return; }
+  if(from===to){ toast('起站與迄站不能相同','err'); return; }
+  if(!TRA_STATIONS.includes(from)){ toast(`找不到站名「${from}」，請從清單選擇`,'err'); return; }
+  if(!TRA_STATIONS.includes(to)){ toast(`找不到站名「${to}」，請從清單選擇`,'err'); return; }
+  if(isNaN(buf)||buf<0||buf>60){ toast('緩衝分鐘需在 0-60 之間','err'); return; }
+  if(!types.length){ toast('至少要勾選一種車種','err'); return; }
+  ST.commuteConfig={ fromStation:from, toStation:to, bufferMin:buf, trainTypes:types };
+  pushCommuteConfig().then(()=>{ renderCommuteCard(); closeM(); toast('已儲存通勤資訊','ok'); });
+}
 
 // ── IMPORT EXCEL ──
 function openImportXLSX(){
@@ -1370,7 +1521,7 @@ function showPage(name){
   if(name==='home'){ if(already) homeOffset=0; renderHome(); }
   if(name==='calendar'){ if(already||!calY||!calM){calY=new Date().getFullYear();calM=new Date().getMonth()+1;} renderCal(); calcLeaveStats(); }
   if(name==='schedule')renderSegs();
-  if(name==='shifts')renderShifts();
+  if(name==='shifts'){ renderCommuteCard(); renderShifts(); }
 }
 function showApp(){
   document.getElementById('loading').style.display='none';
@@ -1378,6 +1529,7 @@ function showApp(){
   app.classList.remove('app-hidden');
   app.style.display='flex';
   if(EDIT_MODE) app.classList.add('edit-mode');
+  if(COMPACT_MODE) app.classList.add('compact-mode');
   renderHome();
 }
 function init(){
