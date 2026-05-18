@@ -267,6 +267,21 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 .tdx-diff-table tbody tr.tdx-row-chg{background:rgba(34,211,238,.08)}
 .tdx-diff-table tbody tr.tdx-row-err{background:rgba(239,68,68,.06)}
 .tdx-diff-table tbody tr.tdx-row-same td{color:var(--tx3)}
+/* 即時查車分頁 */
+.live-od-label{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;font-weight:700}
+.live-od-row{display:flex;gap:7px}
+.live-pill{flex:1;background:var(--s2);border:1px solid var(--bdr2);color:var(--tx2);padding:11px 14px;border-radius:var(--rad-s);font-size:14px;font-family:inherit;cursor:pointer;font-weight:600;min-height:44px;transition:all .15s}
+.live-pill:hover{border-color:var(--tx3);color:var(--tx)}
+.live-pill.active{background:var(--acc-d);border-color:var(--acc);color:var(--acc)}
+.live-swap-btn{background:transparent;border:1px dashed var(--bdr2);color:var(--tx2);padding:6px 14px;border-radius:var(--rad-s);font-size:12px;cursor:pointer;font-family:inherit;min-height:32px}
+.live-swap-btn:hover{border-color:var(--acc);color:var(--acc)}
+.live-card{background:var(--s2);border:1px solid var(--bdr2);border-left:3px solid var(--acc);border-radius:var(--rad-s);padding:13px 15px;margin-bottom:9px}
+.live-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
+.live-card-train{font-weight:700;font-size:15px;color:var(--tx);font-family:'DM Mono',monospace}
+.live-card-countdown{font-size:13px;color:var(--acc);font-weight:700;white-space:nowrap}
+.live-card-times{font-family:'DM Mono',monospace;font-size:14px;color:var(--tx2)}
+.live-card-arrow{color:var(--tx3);margin:0 4px}
+.live-card-dur{font-size:11px;color:var(--tx3);margin-left:10px}
 
 @media (hover: none) {
   .nav-tab:hover{color:var(--tx3)}
@@ -283,6 +298,9 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
   .cal-month-opt:hover{background:transparent}
   .tdx-pick:hover{background:var(--s2);border-color:var(--bdr2)}
   .btn-tdx:hover{border-color:var(--bdr2);background:var(--s2)}
+  .live-pill:hover{border-color:var(--bdr2);color:var(--tx2)}
+  .live-pill.active{background:var(--acc-d);border-color:var(--acc);color:var(--acc)}
+  .live-swap-btn:hover{border-color:var(--bdr2);color:var(--tx2)}
 }
 
 @media(max-width:580px){
@@ -307,12 +325,12 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showPage('home')">⊙ <span class="nav-lbl">首頁</span></button>
       <button class="nav-tab" onclick="showPage('calendar')">▦ <span class="nav-lbl">月曆</span></button>
+      <button class="nav-tab" onclick="showPage('livetrain')">⇄ <span class="nav-lbl">即時查車</span></button>
       <button class="nav-tab edit-only" onclick="showPage('schedule')">↻ <span class="nav-lbl">排班設定</span></button>
       <button class="nav-tab edit-only" onclick="showPage('shifts')">≡ <span class="nav-lbl">工作班</span></button>
     </div>
     <div class="status-wrap">
-      <div class="dot" id="statusDot"></div>
-      <span class="status-txt" id="statusTxt">離線</span>
+      <div class="dot" id="statusDot" title="連線狀態"></div>
     </div>
   </div>
 
@@ -361,6 +379,31 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
           <span id="leaveYear" style="font-size:12px;color:var(--tx3);margin-left:4px"></span>
         </div>
       </div>
+    </div>
+
+    <!-- LIVE TRAIN -->
+    <div id="page-livetrain" class="page">
+      <div style="margin-bottom:14px">
+        <div class="live-od-label">起站</div>
+        <div class="live-od-row" id="liveFromRow">
+          <button class="live-pill" data-st="松竹" onclick="_selectLiveFrom('松竹')">松竹</button>
+          <button class="live-pill" data-st="臺中" onclick="_selectLiveFrom('臺中')">臺中</button>
+          <button class="live-pill" data-st="彰化" onclick="_selectLiveFrom('彰化')">彰化</button>
+        </div>
+      </div>
+      <div style="text-align:center;margin:10px 0">
+        <button class="live-swap-btn" onclick="_swapLiveOD()">⇅ 交換起訖站</button>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="live-od-label">迄站</div>
+        <div class="live-od-row" id="liveToRow">
+          <button class="live-pill" data-st="松竹" onclick="_selectLiveTo('松竹')">松竹</button>
+          <button class="live-pill" data-st="臺中" onclick="_selectLiveTo('臺中')">臺中</button>
+          <button class="live-pill" data-st="彰化" onclick="_selectLiveTo('彰化')">彰化</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="liveQueryBtn" onclick="_queryLive()" disabled style="width:100%;margin-top:6px">🔄 查詢</button>
+      <div id="liveResults" style="margin-top:18px"></div>
     </div>
 
     <!-- SCHEDULE -->
@@ -513,9 +556,10 @@ async function initDB(){
 function setStatus(on){
   try{
     const dot=document.getElementById('statusDot');
-    const txt=document.getElementById('statusTxt');
-    if(dot) dot.className='dot'+(on?' on':'');
-    if(txt) txt.textContent=on?'已連線':'本地模式';
+    if(dot){
+      dot.className='dot'+(on?' on':'');
+      dot.title = on ? '已連線' : '本地模式';
+    }
   }catch(e){}
 }
 async function pushShifts(){
@@ -1651,6 +1695,146 @@ function _applyTdxBatch(){
   });
 }
 
+// ══════════════════════════════════════════════
+// 🚆 即時查車分頁
+// ══════════════════════════════════════════════
+let _liveFrom = '';
+let _liveTo = '';
+let _liveResults = [];
+let _liveLoading = false;
+let _liveTimer = null;
+
+function showLiveTrain(){
+  _updateLivePills();
+  _renderLiveResults();
+  _startLiveTimer();
+}
+
+function _selectLiveFrom(s){
+  if(_liveFrom === s) return;
+  if(_liveTo === s) _liveTo = '';   // 防呆：起站選到跟迄站一樣 → 清掉迄站
+  _liveFrom = s;
+  _liveResults = [];
+  _updateLivePills();
+  _renderLiveResults();
+}
+function _selectLiveTo(s){
+  if(_liveTo === s) return;
+  if(_liveFrom === s) _liveFrom = '';
+  _liveTo = s;
+  _liveResults = [];
+  _updateLivePills();
+  _renderLiveResults();
+}
+function _swapLiveOD(){
+  if(!_liveFrom && !_liveTo) return;
+  [_liveFrom, _liveTo] = [_liveTo, _liveFrom];
+  _liveResults = [];
+  _updateLivePills();
+  _renderLiveResults();
+}
+
+function _updateLivePills(){
+  const fromRow = document.getElementById('liveFromRow');
+  const toRow = document.getElementById('liveToRow');
+  if(!fromRow || !toRow) return;
+  fromRow.querySelectorAll('.live-pill').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.st === _liveFrom);
+  });
+  toRow.querySelectorAll('.live-pill').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.st === _liveTo);
+  });
+  const qb = document.getElementById('liveQueryBtn');
+  if(qb) qb.disabled = !_liveFrom || !_liveTo || _liveFrom === _liveTo || _liveLoading;
+}
+
+async function _queryLive(){
+  if(!_liveFrom || !_liveTo){ toast('請先選擇起訖站','err'); return; }
+  if(_liveFrom === _liveTo){ toast('起訖站不能相同','err'); return; }
+  _liveLoading = true;
+  _updateLivePills();
+  const resEl = document.getElementById('liveResults');
+  resEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx3);font-size:13px">查詢中…</div>';
+
+  const now = new Date();
+  const time = p2(now.getHours())+':'+p2(now.getMinutes());
+  const date = now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate());
+
+  try {
+    const res = await fetch(SUPABASE_URL+'/functions/v1/tdx-search', {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+        'Content-Type':'application/json',
+      },
+      body:JSON.stringify({
+        fromStation:_liveFrom, toStation:_liveTo,
+        mode:'after', time, date, limit:5
+      })
+    });
+    const data = await res.json();
+    if(data.error){
+      resEl.innerHTML = `<div style="text-align:center;padding:18px;color:#ef4444;font-size:13px">查詢失敗：${data.error}</div>`;
+      _liveResults = [];
+    } else {
+      _liveResults = data.candidates || [];
+      _renderLiveResults();
+    }
+  } catch(e){
+    resEl.innerHTML = `<div style="text-align:center;padding:18px;color:#ef4444;font-size:13px">查詢失敗：${e.message}</div>`;
+  }
+  _liveLoading = false;
+  _updateLivePills();
+}
+
+function _renderLiveResults(){
+  const el = document.getElementById('liveResults');
+  if(!el) return;
+  if(!_liveResults.length){
+    if(!_liveFrom || !_liveTo || _liveFrom === _liveTo){
+      el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx3);font-size:13px">請選擇起訖站後按「🔄 查詢」</div>';
+    } else {
+      el.innerHTML = '';
+    }
+    return;
+  }
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  // 過了現在時間的車自動移除
+  _liveResults = _liveResults.filter(c => _hm2min(c.departureTime) >= nowMin);
+  if(!_liveResults.length){
+    el.innerHTML = '<div style="text-align:center;padding:18px;color:var(--tx3);font-size:13px">無未來車次，請按「🔄 查詢」重新查詢</div>';
+    return;
+  }
+  el.innerHTML = _liveResults.map(c => {
+    const depMin = _hm2min(c.departureTime);
+    const arrMin = _hm2min(c.arrivalTime);
+    const dur = arrMin - depMin;
+    const remaining = depMin - nowMin;
+    const cdText = remaining === 0 ? '即將發車' : `${remaining} 分後發車`;
+    return `
+      <div class="live-card">
+        <div class="live-card-head">
+          <div class="live-card-train">${_shortTrainType(c.trainType)} ${c.trainNo}</div>
+          <div class="live-card-countdown">${cdText}</div>
+        </div>
+        <div class="live-card-times">
+          ${c.departureTime}<span class="live-card-arrow">→</span>${c.arrivalTime}
+          <span class="live-card-dur">行車 ${dur} 分</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function _startLiveTimer(){
+  if(_liveTimer) clearInterval(_liveTimer);
+  _liveTimer = setInterval(()=>{
+    const active = document.getElementById('page-livetrain')?.classList.contains('active');
+    if(!active){ clearInterval(_liveTimer); _liveTimer = null; return; }
+    _renderLiveResults();
+  }, 60000);
+}
+
 // ── IMPORT EXCEL ──
 function openImportXLSX(){
   parsedXLSX=null;
@@ -1925,10 +2109,11 @@ function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  const idx={home:0,calendar:1,schedule:2,shifts:3};
+  const idx={home:0,calendar:1,livetrain:2,schedule:3,shifts:4};
   document.querySelectorAll('.nav-tab')[idx[name]]?.classList.add('active');
   if(name==='home'){ if(already) homeOffset=0; renderHome(); }
   if(name==='calendar'){ if(already||!calY||!calM){calY=new Date().getFullYear();calM=new Date().getMonth()+1;} renderCal(); calcLeaveStats(); }
+  if(name==='livetrain') showLiveTrain();
   if(name==='schedule')renderSegs();
   if(name==='shifts'){ renderCommuteCard(); renderShifts(); }
 }
