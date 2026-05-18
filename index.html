@@ -250,6 +250,18 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 
 /* 觸控裝置：取消 hover 視覺殘留（手機/平板點完按鈕後狀態不會卡住）
    注意：此區塊必須放在所有 :hover 規則之後，才能正確 override */
+/* TDX 車次 picker（疊在 shift 編輯 Modal 之上的小視窗） */
+.tdx-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.tdx-picker-overlay.open{display:flex}
+.tdx-picker-box{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rad);padding:18px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.tdx-picker-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--acc)}
+.tdx-pick{width:100%;text-align:left;background:var(--s2);border:1px solid var(--bdr2);padding:10px 12px;border-radius:var(--rad-s);color:var(--tx);display:flex;flex-direction:column;gap:3px;cursor:pointer;font-family:inherit;font-size:13px}
+.tdx-pick:hover{background:var(--s3);border-color:var(--acc)}
+.tdx-pick-main{font-weight:700;font-family:'DM Mono',monospace;font-size:14px}
+.tdx-pick-sub{font-size:11px}
+.btn-tdx{background:var(--s2);border:1px solid var(--bdr2);color:var(--acc);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;margin-left:8px;font-family:inherit;min-height:0;line-height:1.4}
+.btn-tdx:hover{border-color:var(--acc);background:var(--s3)}
+
 @media (hover: none) {
   .nav-tab:hover{color:var(--tx3)}
   .btn-sm:hover{border-color:var(--bdr2);color:var(--tx2)}
@@ -263,6 +275,8 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
   .cal-nav-btn:hover{border-color:var(--bdr2);color:var(--tx)}
   .cal-title:hover{color:inherit}
   .cal-month-opt:hover{background:transparent}
+  .tdx-pick:hover{background:var(--s2);border-color:var(--bdr2)}
+  .btn-tdx:hover{border-color:var(--bdr2);background:var(--s2)}
 }
 
 @media(max-width:580px){
@@ -383,6 +397,15 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
     <div class="modal-title" id="modalTitle"></div>
     <div id="modalBody"></div>
     <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+<div class="tdx-picker-overlay" id="tdxPicker" onclick="tdxPickerOverlayClick(event)">
+  <div class="tdx-picker-box">
+    <div class="tdx-picker-title" id="tdxPickerTitle">🚆 台鐵車次查詢</div>
+    <div id="tdxPickerBody"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary" onclick="closeTdxPicker()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -1126,7 +1149,7 @@ function openEditShift(id){
     <div class="sep"></div>
     <div class="f2">
       <div class="fg">
-        <label class="fl">🚉 上班搭車時間</label>
+        <label class="fl">🚉 上班搭車時間<button type="button" class="btn-tdx" onclick="openTdxPicker('before')">🚆 查台鐵</button></label>
         <div style="display:flex;gap:5px;align-items:center">
           <input class="fi" type="time" id="ebt" value="${s?.boardTime||''}" style="flex:1">
           <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('ebt').value=''">✕</button>
@@ -1134,7 +1157,7 @@ function openEditShift(id){
         <div class="fhint">你去上班所搭的那班車時刻</div>
       </div>
       <div class="fg">
-        <label class="fl">🏠 下班搭車時間</label>
+        <label class="fl">🏠 下班搭車時間<button type="button" class="btn-tdx" onclick="openTdxPicker('after')">🚆 查台鐵</button></label>
         <div style="display:flex;gap:5px;align-items:center">
           <input class="fi" type="time" id="eat" value="${s?.alightTime||''}" style="flex:1">
           <button type="button" class="btn btn-ghost" style="padding:5px 8px;font-size:12px;flex-shrink:0" onclick="document.getElementById('eat').value=''">✕</button>
@@ -1175,7 +1198,14 @@ function deleteShift(id){ if(!confirm('確定刪除？'))return; ST.shifts=ST.sh
 // ══════════════════════════════════════════════
 const TRAIN_TYPES_ALL = ['自強','莒光','區間','區間快','普悠瑪','太魯閣'];
 function getCommuteConfig(){
-  return ST.commuteConfig || { fromStation:'', toStation:'', bufferMin:6, trainTypes:[...TRAIN_TYPES_ALL] };
+  const c = ST.commuteConfig || {};
+  return {
+    fromStation: c.fromStation || '',
+    toStation:   c.toStation   || '',
+    bufferMin:   c.bufferMin   ?? 6,
+    earlyMin:    c.earlyMin    ?? 40,
+    trainTypes:  (c.trainTypes && c.trainTypes.length) ? c.trainTypes : [...TRAIN_TYPES_ALL],
+  };
 }
 function renderCommuteCard(){
   const el=document.getElementById('commuteCard');
@@ -1191,10 +1221,11 @@ function renderCommuteCard(){
         ${isSet?`
           <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2)">
             <div><span style="color:var(--tx3)">路線</span>　<b style="color:var(--tx);font-family:'DM Mono',monospace">${c.fromStation} → ${c.toStation}</b></div>
-            <div><span style="color:var(--tx3)">緩衝</span>　<b style="color:var(--tx)">${c.bufferMin} 分鐘</b></div>
+            <div><span style="color:var(--tx3)">上班緩衝</span>　<b style="color:var(--tx)">${c.bufferMin} 分</b></div>
+            <div><span style="color:var(--tx3)">下班可提早</span>　<b style="color:var(--tx)">${c.earlyMin} 分</b></div>
             <div><span style="color:var(--tx3)">車種</span>　<b style="color:var(--tx)">${allTypes?'全部':types.join('、')}</b></div>
           </div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:6px">用於從台鐵自動查詢搭車時間（TDX 審查中，預計開通後啟用）</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:6px">設定後可在工作班編輯內用「🚆 查台鐵」自動帶入搭車時間</div>
         `:`
           <div style="font-size:12px;color:var(--tx3)">尚未設定通勤路線。設定後可從台鐵自動查詢搭車時間，省去手動輸入。</div>
         `}
@@ -1227,10 +1258,17 @@ function openCommuteEdit(){
         <input class="fi" id="ccTo" list="stationList" value="${c.toStation||''}" placeholder="例如：七堵" autocomplete="off">
       </div>
     </div>
-    <div class="fg">
-      <label class="fl">⏱ 抵達緩衝分鐘</label>
-      <input class="fi" id="ccBuf" type="number" min="0" max="60" value="${c.bufferMin??6}" style="max-width:120px">
-      <div class="fhint">下車後到單位的步行時間 + 提前報到時間，App 會用「上班時間 − 緩衝」當作最晚抵達時間</div>
+    <div class="f2">
+      <div class="fg">
+        <label class="fl">⏱ 上班緩衝分鐘</label>
+        <input class="fi" id="ccBuf" type="number" min="0" max="60" value="${c.bufferMin}" style="max-width:120px">
+        <div class="fhint">下車後到單位的步行 + 提前報到時間。App 用「上班時間 − 緩衝」當最晚抵達時間</div>
+      </div>
+      <div class="fg">
+        <label class="fl">🏁 下班可提早分鐘</label>
+        <input class="fi" id="ccEarly" type="number" min="0" max="120" value="${c.earlyMin}" style="max-width:120px">
+        <div class="fhint">下班最多可提早多少搭車。App 從「下班時間 − 提早」開始找車</div>
+      </div>
     </div>
     <div class="fg">
       <label class="fl">🚄 車種偏好（可複選）</label>
@@ -1248,15 +1286,139 @@ function saveCommuteConfig(){
   const from=document.getElementById('ccFrom').value.trim();
   const to=document.getElementById('ccTo').value.trim();
   const buf=parseInt(document.getElementById('ccBuf').value,10);
+  const early=parseInt(document.getElementById('ccEarly').value,10);
   const types=[...document.querySelectorAll('.commute-type-cb:checked')].map(el=>el.value);
   if(!from||!to){ toast('請輸入起站與迄站','err'); return; }
   if(from===to){ toast('起站與迄站不能相同','err'); return; }
   if(!TRA_STATIONS.includes(from)){ toast(`找不到站名「${from}」，請從清單選擇`,'err'); return; }
   if(!TRA_STATIONS.includes(to)){ toast(`找不到站名「${to}」，請從清單選擇`,'err'); return; }
-  if(isNaN(buf)||buf<0||buf>60){ toast('緩衝分鐘需在 0-60 之間','err'); return; }
+  if(isNaN(buf)||buf<0||buf>60){ toast('上班緩衝需在 0-60 分之間','err'); return; }
+  if(isNaN(early)||early<0||early>120){ toast('下班可提早需在 0-120 分之間','err'); return; }
   if(!types.length){ toast('至少要勾選一種車種','err'); return; }
-  ST.commuteConfig={ fromStation:from, toStation:to, bufferMin:buf, trainTypes:types };
+  ST.commuteConfig={ fromStation:from, toStation:to, bufferMin:buf, earlyMin:early, trainTypes:types };
   pushCommuteConfig().then(()=>{ renderCommuteCard(); closeM(); toast('已儲存通勤資訊','ok'); });
+}
+
+// ══════════════════════════════════════════════
+// TDX 車次自動查詢（工作班 Modal 內）
+// ══════════════════════════════════════════════
+let _tdxCands = [];
+let _tdxMode  = 'before';
+function _hm2min(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function _adjustTime(t, deltaMin){
+  let total=_hm2min(t)+deltaMin;
+  total=((total%1440)+1440)%1440;
+  return p2(Math.floor(total/60))+':'+p2(total%60);
+}
+function _tomorrowISO(){
+  const d=new Date(); d.setDate(d.getDate()+1);
+  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+}
+function _shortTrainType(t){ return (t||'').replace(/\(.*\)/,'').trim(); }
+
+function openTdxPicker(mode){
+  const c = getCommuteConfig();
+  if(!c.fromStation || !c.toStation){
+    toast('請先在工作班頁面設定通勤資訊','err'); return;
+  }
+  const startTime = document.getElementById('est')?.value;
+  const endTime   = document.getElementById('eet')?.value;
+  const baseTime  = mode==='before' ? startTime : endTime;
+  if(!baseTime){
+    toast(mode==='before'?'請先填上班時間':'請先填下班時間','err'); return;
+  }
+  _tdxMode = mode;
+  const threshold = _adjustTime(baseTime, mode==='before' ? -c.bufferMin : -c.earlyMin);
+  const date = _tomorrowISO();
+  const fromSt = mode==='before' ? c.fromStation : c.toStation;
+  const toSt   = mode==='before' ? c.toStation   : c.fromStation;
+
+  document.getElementById('tdxPickerTitle').textContent =
+    mode==='before' ? `🚆 查上班車　${fromSt} → ${toSt}` : `🚆 查下班車　${fromSt} → ${toSt}`;
+  document.getElementById('tdxPickerBody').innerHTML =
+    '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">查詢中…</div>';
+  document.getElementById('tdxPicker').classList.add('open');
+
+  fetch(SUPABASE_URL+'/functions/v1/tdx-search', {
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({
+      fromStation:fromSt, toStation:toSt,
+      mode, time:threshold, date,
+      trainTypes:c.trainTypes
+    })
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.error){
+      document.getElementById('tdxPickerBody').innerHTML =
+        `<div style="color:#ef4444;padding:16px;text-align:center;font-size:13px">查詢失敗：${data.error}</div>`;
+      return;
+    }
+    _renderTdxResults(data, baseTime);
+  })
+  .catch(e=>{
+    document.getElementById('tdxPickerBody').innerHTML =
+      `<div style="color:#ef4444;padding:16px;text-align:center;font-size:13px">查詢失敗：${e.message}</div>`;
+  });
+}
+
+function _renderTdxResults(data, baseTime){
+  _tdxCands = data.candidates || [];
+  if(!_tdxCands.length){
+    document.getElementById('tdxPickerBody').innerHTML =
+      '<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">查無符合車次<br><span style="font-size:11px">（請檢查車種設定或站名是否正確）</span></div>';
+    return;
+  }
+  const baseMin = _hm2min(baseTime);
+  const rows = _tdxCands.map((c,i)=>{
+    let badge='';
+    if(_tdxMode==='before'){
+      const arrMin = _hm2min(c.arrivalTime);
+      const earlyMin = baseMin - arrMin;
+      if(i===0) badge=`<span style="color:var(--acc);font-weight:700">推薦</span>　<span style="color:var(--tx3)">提早 ${earlyMin} 分抵達</span>`;
+      else badge=`<span style="color:var(--tx3)">提早 ${earlyMin} 分抵達</span>`;
+    } else {
+      const depMin = _hm2min(c.departureTime);
+      if(depMin < baseMin) badge = `<span style="color:#22d3ee;font-weight:700">可提早 ${baseMin-depMin} 分下班</span>`;
+      else if(depMin === baseMin) badge = '<span style="color:var(--acc);font-weight:700">準點下班</span>';
+      else badge = `<span style="color:var(--tx3)">${depMin-baseMin} 分後出發</span>`;
+    }
+    const t = _shortTrainType(c.trainType);
+    return `
+      <button class="tdx-pick" onclick="applyTdxPick(${i})">
+        <div class="tdx-pick-main">${t} ${c.trainNo}　${c.departureTime} → ${c.arrivalTime}</div>
+        <div class="tdx-pick-sub">${badge}</div>
+      </button>`;
+  }).join('');
+  document.getElementById('tdxPickerBody').innerHTML = `
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">${data.from.name} → ${data.to.name}　${data.date}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">${rows}</div>
+  `;
+}
+
+function applyTdxPick(idx){
+  const c = _tdxCands[idx];
+  if(!c) return;
+  if(_tdxMode==='before'){
+    document.getElementById('ebt').value = c.departureTime;
+    document.getElementById('edt').value = c.trainNo;
+  } else {
+    document.getElementById('eat').value = c.departureTime;
+    document.getElementById('eat2').value = c.trainNo;
+  }
+  closeTdxPicker();
+  toast(`已套用 ${_shortTrainType(c.trainType)} ${c.trainNo}`,'ok');
+}
+
+function closeTdxPicker(){
+  document.getElementById('tdxPicker').classList.remove('open');
+}
+function tdxPickerOverlayClick(e){
+  if(e.target.id==='tdxPicker') closeTdxPicker();
 }
 
 // ── IMPORT EXCEL ──
