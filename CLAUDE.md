@@ -207,6 +207,52 @@ TDX picker 跟批次更新都只動 `boardTime` / `alightTime`，車次號僅作
 - **`.cc-type`**：月曆 cell 的類型文字（「例假」「休班」等），CSS 已定義樣式
 - **`.commute-type-cb`**：通勤 Modal 的車種 checkbox（不可改用 `.cc-type`，會被月曆樣式污染）
 
+## 即時查車分頁（livetrain）
+
+獨立的 TDX 即時查詢工具，與通勤資訊**完全無關**（不共用 OD、不共用車種偏好）。
+
+- **位置**：nav 第三個 tab「⇄ 即時查車」，全用戶可見（不限 edit mode）
+- **頁面 id**：`page-livetrain`
+- **三站固定**：松竹 / 臺中 / 彰化（pill 按鈕，硬編碼在 HTML 內，要改站名要兩個 row 都改）
+- **showPage idx 對照**：`{home:0, calendar:1, livetrain:2, schedule:3, shifts:4}`
+
+### 狀態變數
+
+```js
+let _liveFrom = '';      // 起站
+let _liveTo = '';        // 迄站
+let _liveResults = [];   // TDX 回傳的 candidates，過了現在時間的會被過濾掉
+let _liveLoading = false;
+let _liveTimer = null;   // 60 秒 setInterval，更新倒數
+```
+
+不持久化（不 localStorage、不 Supabase），純 module-scope。換頁回來會保留選擇，重新整理頁面則重置。
+
+### 操作行為（重要）
+
+- **進頁不自動查**，user 必須手動按「🔄 查詢」
+- **改起/迄站、按交換**：只更新狀態 + 清空 `_liveResults`，**不打 TDX**
+- **起=迄防呆**：選到一樣會把另一邊清空
+- **過了現在時間的車自動消失**：`_renderLiveResults()` 每次都 filter `depMin >= nowMin`
+- **倒數更新**：`_startLiveTimer()` setInterval 60 秒，page 不在 active 時自動清掉
+
+### TDX 呼叫
+
+直接打 `tdx-search` Edge Function，**不快取**：
+```js
+{ fromStation:_liveFrom, toStation:_liveTo, mode:'after', time:<現在 HH:MM>, date:<今天>, limit:5 }
+```
+
+沒帶 `trainTypes` → 顯示全部車種。
+
+⚠️ 仍受 TDX 免費版 5 次/分鐘限制，但這頁是「手動觸發」，user 自己掌控節奏，不太會撞牆。
+
+### 站名「臺」vs「台」
+
+TDX 用「**臺**中」（傳統字），UI pill 也用「臺中」。**Edge Function 不做 normalize**，所以前端傳入的站名必須跟 `STATION_MAP` key 完全一致。
+
+如果之後想加更多站，記得查 `STATION_MAP` 的 key 是「臺」還是「台」（縱貫線多用「臺」）。
+
 ## Images
 
 `images/` folder contains JPEG files named by shift number (e.g., `501.jpeg`, `544V.jpeg`, `575AV.jpeg`). Referenced as `images/{shiftId}.jpeg`. Missing images fail silently via `onerror="this.style.display='none'"`.
