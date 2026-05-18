@@ -125,24 +125,82 @@ URL 參數 `?compact=1` 啟用「精簡模式」，給 Apple Watch 透過 iOS �
 
 部署用 URL：`https://barett07.github.io/railwayshift/?compact=1`
 
-## 通勤資訊與 TDX 整合（規劃中）
+## 通勤資訊與 TDX 整合
 
-為「臺鐵改點後自動更新搭車時間」做的鋪墊。Stan 已申請 TDX 公部門會員（2026-05-17 送審，約 3 個工作天），通過後接續實作。
+「臺鐵改點後自動更新搭車時間」功能。TDX 帳號於 2026-05-19 啟用，整合完成。
 
-### 已完成（資料層與 UI）
+### 資料結構
 
-- **資料結構**：`ST.commuteConfig = { fromStation, toStation, bufferMin, trainTypes }`
-- **Supabase key**：`commute_config`（同 `shifts/segments/exceptions` 走 `app_data` 表）
+`ST.commuteConfig = { fromStation, toStation, bufferMin, earlyMin, trainTypes }`
+
+- `bufferMin`（預設 6）：上班抵達緩衝。App 用「上班時間 − bufferMin」當最晚抵達時間
+- `earlyMin`（預設 40）：下班可提早分鐘。App 從「下班時間 − earlyMin」開始找車
+- **Supabase key**：`commute_config`（走 `app_data` 表）
 - **localStorage key**：`rw2_commute_config`
-- **車站清單**：`TRA_STATIONS` 常數，硬編碼約 200 個臺鐵營運站（含支線），按路線排列供 `<datalist>` autocomplete
-- **UI 位置**：工作班頁面頂部 `#commuteCard`（僅 `?edit=1` 看得到），編輯函式 `openCommuteEdit()` / `saveCommuteConfig()` / `renderCommuteCard()`
+- **車站清單**：`TRA_STATIONS` 常數（~200 個臺鐵營運站，按路線排列）供 `<datalist>` autocomplete
+- **UI 位置**：工作班頁面頂部 `#commuteCard`（僅 `?edit=1` 看得到）
 - **同步函式**：`pushCommuteConfig()`
 
-### 待辦（TDX 通過後）
+### Edge Function `tdx-search`
 
-1. 建 Supabase Edge Function `tdx-search` 代理 TDX OAuth2 + 查詢車次（避免 Client Secret 暴露於前端）
-2. 工作班編輯 Modal 加「🚆 查台鐵」按鈕，依「上班時間 − bufferMin」自動找最後一班能準時抵達的車
-3. 工作班頁面加「🔄 全部重抓台鐵時刻」批次更新（含「舊→新」勾選預覽表）
+- **路徑**：`supabase/functions/tdx-search/index.ts`
+- **Endpoint**：`https://oqyjixphmdrhcmomskth.supabase.co/functions/v1/tdx-search`（需帶 anon key）
+- **Secret**：`TDX_CLIENT_ID` / `TDX_CLIENT_SECRET`（透過 `supabase secrets set` 設定，不在 git）
+- **部署**：
+  ```bash
+  cd "/Users/stan/Claude Code/railwayshift"
+  supabase functions deploy tdx-search --project-ref oqyjixphmdrhcmomskth
+  ```
+
+**Input**：
+```json
+{
+  "fromStation": "彰化", "toStation": "員林",
+  "mode": "before",        // before=上班(找最後能準時抵達)；after=下班(找最早能搭)
+  "time": "06:54",         // before=arriveBy；after=departAfter
+  "date": "2026-05-20",
+  "trainTypes": ["區間","區間快","自強"],
+  "limit": 0               // 預設 5；傳 0 取得全日（批次模式用）
+}
+```
+
+**Output**：`{ best, candidates, mode, date, from:{name,id}, to:{name,id} }`
+
+### ⚠️ TDX 免費版速率限制：5 次/分鐘/金鑰
+
+**不是 5 次/秒**，很容易誤判。設計時必須最小化 TDX 呼叫次數：
+
+- ✅ 站號表 `STATION_MAP` 寫死在 Edge Function 內（245 站），不要動態抓 `/Station` API
+- ✅ Edge Function 模組層快取 OAuth token（有效 1 天）
+- ✅ 批次更新「整批只打 2 次 TDX」策略（見下）
+- ✅ Edge Function 內建 429 退避重試（0.8s → 2s → 4s）
+
+### 批次重抓策略（重要）
+
+「🔄 全部重抓台鐵」絕對不能逐班查詢（30 班 × 2 方向 = 60 次，遠超 5/分限制）。
+
+正確做法（`openTdxBatch`）：
+1. 對 OD 配對 home→work 打 1 次 TDX，`time="23:59"` `limit:0` 取得全日所有車次
+2. 對 OD 配對 work→home 打 1 次 TDX，`time="00:00"` `limit:0` 取得全日所有車次
+3. 兩次間隔 800ms（保險）
+4. **前端在記憶體裡**為每個班次跑 `_pickBefore()` / `_pickAfter()` 篩出最佳車
+
+整批永遠只 2 次 TDX 呼叫，與班次數無關。
+
+### 🚨 `depTrain` / `arrTrain` 不是通勤車次
+
+工作班物件有 4 個「車次/時間」相關欄位，語意完全不同：
+
+| 欄位 | 用途 |
+|---|---|
+| `boardTime` | 通勤上班搭車時間（**TDX 查詢會更新**） |
+| `alightTime` | 通勤下班搭車時間（**TDX 查詢會更新**） |
+| `depTrain` | **Stan 上班要駕駛的首班車次**（TDX 查詢**絕對不可覆寫**） |
+| `arrTrain` | **Stan 下班要駕駛的末班車次**（TDX 查詢**絕對不可覆寫**） |
+
+`depTrain`/`arrTrain` 是 Stan 作為司機員實際駕駛的列車，與通勤搭車毫無關係。早期版本曾把 TDX 查到的通勤車次寫入這兩個欄位，是錯的。
+
+TDX picker 跟批次更新都只動 `boardTime` / `alightTime`，車次號僅作參考顯示。
 
 ### CSS Class 命名避坑
 
