@@ -261,6 +261,12 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 .tdx-pick-sub{font-size:11px}
 .btn-tdx{background:var(--s2);border:1px solid var(--bdr2);color:var(--acc);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;margin-left:8px;font-family:inherit;min-height:0;line-height:1.4}
 .btn-tdx:hover{border-color:var(--acc);background:var(--s3)}
+.tdx-diff-table{width:100%;font-size:12px;border-collapse:collapse}
+.tdx-diff-table th{background:var(--s3);color:var(--tx3);padding:7px 8px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.05em;white-space:nowrap}
+.tdx-diff-table td{padding:7px 8px;border-top:1px solid var(--bdr);color:var(--tx2);vertical-align:middle}
+.tdx-diff-table tbody tr.tdx-row-chg{background:rgba(34,211,238,.08)}
+.tdx-diff-table tbody tr.tdx-row-err{background:rgba(239,68,68,.06)}
+.tdx-diff-table tbody tr.tdx-row-same td{color:var(--tx3)}
 
 @media (hover: none) {
   .nav-tab:hover{color:var(--tx3)}
@@ -374,6 +380,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
       <div class="sec-head">
         <div><div class="sec-title">工作班資料庫</div><div class="sec-sub" id="shiftsCount">共 0 班</div></div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="openTdxBatch()">🔄 全部重抓台鐵</button>
           <button class="btn btn-secondary" onclick="openImportXLSX()">📥 匯入 Excel</button>
           <button class="btn btn-primary" onclick="openEditShift(null)">＋ 手動新增</button>
         </div>
@@ -1403,15 +1410,11 @@ function _renderTdxResults(data, baseTime){
 function applyTdxPick(idx){
   const c = _tdxCands[idx];
   if(!c) return;
-  if(_tdxMode==='before'){
-    document.getElementById('ebt').value = c.departureTime;
-    document.getElementById('edt').value = c.trainNo;
-  } else {
-    document.getElementById('eat').value = c.departureTime;
-    document.getElementById('eat2').value = c.trainNo;
-  }
+  // 只填搭車時間，「首班/末班車次」是 Stan 實際駕駛的工作車次，與通勤無關，不可覆寫
+  if(_tdxMode==='before') document.getElementById('ebt').value = c.departureTime;
+  else                    document.getElementById('eat').value = c.departureTime;
   closeTdxPicker();
-  toast(`已套用 ${_shortTrainType(c.trainType)} ${c.trainNo}`,'ok');
+  toast(`已套用 ${_shortTrainType(c.trainType)} ${c.trainNo} ${c.departureTime}`,'ok');
 }
 
 function closeTdxPicker(){
@@ -1419,6 +1422,233 @@ function closeTdxPicker(){
 }
 function tdxPickerOverlayClick(e){
   if(e.target.id==='tdxPicker') closeTdxPicker();
+}
+
+// ══════════════════════════════════════════════
+// TDX 批次重抓全部工作班搭車時間
+// ══════════════════════════════════════════════
+let _tdxBatchResults = [];
+let _tdxBatchCancelled = false;
+let _tdxBatchPicks = new Set();
+function _sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function _tdxBatchCancel(){ _tdxBatchCancelled = true; }
+
+async function _tdxBatchFetchAll(c, mode, date){
+  // 抓該方向「全日」時刻表（mode='before' time=23:59；mode='after' time=00:00）
+  const fromSt = mode==='before' ? c.fromStation : c.toStation;
+  const toSt   = mode==='before' ? c.toStation   : c.fromStation;
+  const time   = mode==='before' ? '23:59' : '00:00';
+  const res = await fetch(SUPABASE_URL+'/functions/v1/tdx-search', {
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({
+      fromStation:fromSt, toStation:toSt, mode, time, date,
+      trainTypes:c.trainTypes, limit:0
+    })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+
+function _pickBefore(list, arriveBy){
+  // list 已依出發時間從晚到早排序；找第一筆抵達 ≤ arriveBy 的車（即「最後一班能準時到」）
+  const arriveMin = _hm2min(arriveBy);
+  return list.find(c => _hm2min(c.arrivalTime) <= arriveMin) || null;
+}
+function _pickAfter(list, departAfter){
+  // list 已依出發時間從早到晚排序；找第一筆出發 ≥ departAfter 的車（即「最早能搭」）
+  const depMin = _hm2min(departAfter);
+  return list.find(c => _hm2min(c.departureTime) >= depMin) || null;
+}
+
+async function openTdxBatch(){
+  const c = getCommuteConfig();
+  if(!c.fromStation || !c.toStation){
+    toast('請先設定通勤資訊','err'); return;
+  }
+  if(!ST.shifts.length){ toast('沒有工作班可更新','err'); return; }
+
+  _tdxBatchCancelled = false;
+  _tdxBatchResults = [];
+  setModal('🔄 全部重抓台鐵時刻', `
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:8px">
+      只需向 TDX 查詢兩次（上行 + 下行全日時刻表），所有班次的搭車時間在前端計算。
+    </div>
+    <div id="tdxBatchProgress" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx);padding:10px;background:var(--s2);border-radius:var(--rad-s)">準備中…</div>
+  `, [{label:'取消',cls:'btn-secondary',fn:'_tdxBatchCancel()'}], true);
+
+  const date = _tomorrowISO();
+  let beforeList = null, afterList = null;
+
+  try {
+    const prog = document.getElementById('tdxBatchProgress');
+    if(prog) prog.textContent = `(1/2) 查詢 ${c.fromStation} → ${c.toStation} 全日時刻表…`;
+    const r1 = await _tdxBatchFetchAll(c, 'before', date);
+    beforeList = r1.candidates || [];
+    if(_tdxBatchCancelled){ closeM(); toast('已取消','err'); return; }
+
+    // 兩次查詢間留 800ms，避免 TDX 速率限制（免費版 5 次/分）
+    await _sleep(800);
+
+    if(prog) prog.textContent = `(2/2) 查詢 ${c.toStation} → ${c.fromStation} 全日時刻表…`;
+    const r2 = await _tdxBatchFetchAll(c, 'after', date);
+    afterList = r2.candidates || [];
+  } catch(e) {
+    closeM();
+    toast('查詢失敗：'+e.message,'err');
+    return;
+  }
+
+  if(_tdxBatchCancelled){ closeM(); toast('已取消','err'); return; }
+
+  // 在記憶體中對每個班次挑最佳車
+  for(const s of ST.shifts){
+    if(s.startTime){
+      const arriveBy = _adjustTime(s.startTime, -c.bufferMin);
+      const best = _pickBefore(beforeList, arriveBy);
+      _tdxBatchResults.push({
+        shiftId: s.id, shiftName: s.name, mode: 'before',
+        oldTime: s.boardTime || '', oldTrain: s.depTrain || '',
+        newTime: best?.departureTime || '', newTrain: best?.trainNo || '',
+        error: null
+      });
+    }
+    if(s.endTime){
+      const departAfter = _adjustTime(s.endTime, -c.earlyMin);
+      const best = _pickAfter(afterList, departAfter);
+      _tdxBatchResults.push({
+        shiftId: s.id, shiftName: s.name, mode: 'after',
+        oldTime: s.alightTime || '', oldTrain: s.arrTrain || '',
+        newTime: best?.departureTime || '', newTrain: best?.trainNo || '',
+        error: null
+      });
+    }
+  }
+
+  _renderTdxBatchDiff();
+}
+
+function _hasChange(r){
+  if(r.error) return false;
+  if(!r.newTime) return false;
+  // 只比對時間（車次號不存到 shift，不參與變動判斷）
+  return r.newTime !== r.oldTime;
+}
+
+function _renderTdxBatchDiff(){
+  const results = _tdxBatchResults;
+  if(!results.length){ closeM(); toast('沒有可比對的資料','err'); return; }
+
+  _tdxBatchPicks = new Set();
+  results.forEach((r,i)=>{ if(_hasChange(r)) _tdxBatchPicks.add(i); });
+
+  const rows = results.map((r,i)=>{
+    const changed = _hasChange(r);
+    const cls = r.error ? 'tdx-row-err' : (changed ? 'tdx-row-chg' : 'tdx-row-same');
+    const label = r.mode === 'before' ? '上班' : '下班';
+    const checked = _tdxBatchPicks.has(i) ? 'checked' : '';
+    const disabled = (r.error || (!r.newTime && !r.newTrain)) ? 'disabled' : '';
+    const oldStr = r.oldTime ? r.oldTime : '<span style="color:var(--tx3)">未設定</span>';
+    let newStr;
+    if(r.error) newStr = `<span style="color:#ef4444">${String(r.error).slice(0,40)}</span>`;
+    else if(!r.newTime) newStr = '<span style="color:var(--tx3)">查無車次</span>';
+    else newStr = `${r.newTime}${r.newTrain?` <span style="color:var(--tx3);font-size:11px">(${r.newTrain})</span>`:''}`;
+    return `
+      <tr class="${cls}">
+        <td style="text-align:center"><input type="checkbox" data-idx="${i}" ${checked} ${disabled} onchange="_tdxBatchToggle(${i})"></td>
+        <td><b style="color:var(--tx)">${r.shiftName}</b></td>
+        <td>${label}</td>
+        <td style="font-family:'DM Mono',monospace">${oldStr}</td>
+        <td style="font-family:'DM Mono',monospace">${newStr}</td>
+      </tr>`;
+  }).join('');
+
+  const changedCount = results.filter(_hasChange).length;
+  const errCount = results.filter(r=>r.error).length;
+
+  setModal('🔄 台鐵時刻對照結果', `
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+      共 <b style="color:var(--tx)">${results.length}</b> 項查詢，
+      <b style="color:#22d3ee">${changedCount}</b> 項有變動（預設已勾選）
+      ${errCount?`，<b style="color:#ef4444">${errCount}</b> 項失敗`:''}。
+    </div>
+    <div style="overflow:auto;max-height:55vh;border:1px solid var(--bdr);border-radius:var(--rad-s)">
+      <table class="tdx-diff-table">
+        <thead><tr>
+          <th style="width:50px;text-align:center"><input type="checkbox" id="tdxBatchHeadCb" onchange="_tdxBatchToggleAll()" title="全選 / 取消全選" style="cursor:pointer"></th>
+          <th>班號</th>
+          <th>方向</th>
+          <th>舊搭車時間</th>
+          <th>新搭車時間（車次參考）</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `, [
+    {label:'取消',cls:'btn-secondary',fn:'closeM()'},
+    {label:'套用勾選',cls:'btn-primary',fn:'_applyTdxBatch()'},
+  ], true);
+  _updateBatchHeadCb();
+}
+
+function _validBatchIndices(){
+  const out = [];
+  _tdxBatchResults.forEach((r,i)=>{
+    if(!r.error && (r.newTime || r.newTrain)) out.push(i);
+  });
+  return out;
+}
+function _updateBatchHeadCb(){
+  const head = document.getElementById('tdxBatchHeadCb');
+  if(!head) return;
+  const valids = _validBatchIndices();
+  if(!valids.length){ head.checked=false; head.indeterminate=false; head.disabled=true; return; }
+  head.disabled=false;
+  const checkedCount = valids.filter(i=>_tdxBatchPicks.has(i)).length;
+  if(checkedCount === 0){ head.checked=false; head.indeterminate=false; }
+  else if(checkedCount === valids.length){ head.checked=true; head.indeterminate=false; }
+  else { head.checked=false; head.indeterminate=true; }
+}
+function _tdxBatchToggleAll(){
+  const valids = _validBatchIndices();
+  const allChecked = valids.length>0 && valids.every(i=>_tdxBatchPicks.has(i));
+  if(allChecked) valids.forEach(i=>_tdxBatchPicks.delete(i));
+  else valids.forEach(i=>_tdxBatchPicks.add(i));
+  valids.forEach(i=>{
+    const cb = document.querySelector(`input[type=checkbox][data-idx="${i}"]`);
+    if(cb) cb.checked = _tdxBatchPicks.has(i);
+  });
+  _updateBatchHeadCb();
+}
+
+function _tdxBatchToggle(i){
+  if(_tdxBatchPicks.has(i)) _tdxBatchPicks.delete(i);
+  else _tdxBatchPicks.add(i);
+  _updateBatchHeadCb();
+}
+
+function _applyTdxBatch(){
+  if(!_tdxBatchPicks.size){ toast('沒有勾選任何項目','err'); return; }
+  const picks = [..._tdxBatchPicks].map(i=>_tdxBatchResults[i]).filter(r=>r && !r.error);
+  if(!picks.length){ toast('勾選項目皆無效','err'); return; }
+
+  // 只更新搭車時間，不動「首班/末班車次」（那是工作駕駛的車次）
+  const updates = {};
+  for(const r of picks){
+    if(!updates[r.shiftId]) updates[r.shiftId] = {};
+    if(r.mode === 'before') updates[r.shiftId].boardTime  = r.newTime;
+    else                    updates[r.shiftId].alightTime = r.newTime;
+  }
+  ST.shifts = ST.shifts.map(s => updates[s.id] ? { ...s, ...updates[s.id] } : s);
+  pushShifts().then(()=>{
+    closeM();
+    renderShifts();
+    toast(`已套用 ${picks.length} 項變更`,'ok');
+  });
 }
 
 // ── IMPORT EXCEL ──
