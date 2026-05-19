@@ -340,6 +340,38 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 
 **注意：** `576V` 未出現在 115/04/09 班表，保留自原手動截圖。若格式大改版需重新校正閾值。
 
+## 資安架構（重要）
+
+### 管理員模式
+- **網址**：`?admin=1`（舊的 `?edit=1` 已廢棄）
+- 頁面載入時立即呼叫 `_initAdminAuth()`，透過後端驗證密碼後才套用 `edit-mode` class
+- 密碼存在 `localStorage['rw_write_token']`；驗證失敗或 key 不存在則跳出密碼框（不可關閉）
+- 密碼框期間 `_adminAuthPending = true`，overlay click 不關閉
+
+### 寫入保護
+- `app_data` 的 RLS：anon 只能 SELECT，**不能寫入**
+- 所有寫入走 Edge Function `write-data`，帶 `X-Write-Token` header（Supabase Secret `WRITE_SECRET`）
+- `dbSet()` 自動呼叫 `_requireWT()` 取得 token；若 Edge Function 回 401 → 清除 localStorage token + 拋出錯誤
+
+### XSS 防護
+- `escapeHtml()` 定義在 JS 頂部（STATE 區塊上方）
+- **建立或修改任何 innerHTML 時，使用者資料（shift.name、shift.specialNote、info.note、info.shiftId）都必須套用 `escapeHtml()`**
+
+### CORS
+- `tdx-search`：限定 `https://barett07.github.io`
+- `calendar`：保留 `*`（Apple / Google Calendar 訂閱用）
+
+### 部署 Edge Function
+```bash
+cd "/Users/stan/Claude Code/railwayshift"
+supabase functions deploy write-data --project-ref oqyjixphmdrhcmomskth
+supabase functions deploy tdx-search --project-ref oqyjixphmdrhcmomskth
+supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth --no-verify-jwt
+```
+
+### Supabase Secret
+- `WRITE_SECRET`：寫入密碼，Stan 自行設定，不在程式碼裡
+
 ## Collaboration Rules
 
 **Before writing any code**, discuss the change direction with the user and get explicit approval. Only start generating code when the user says "開始生成" or equivalent confirmation. Do not implement speculatively.
