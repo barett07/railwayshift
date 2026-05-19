@@ -1,7 +1,8 @@
 // TDX TRA train search proxy
-// Input  (POST JSON): { fromStation, toStation, mode, time, date, trainTypes? }
+// Input  (POST JSON): { fromStation, toStation, mode, time, date, trainTypes?, limit?, includeDelay? }
 //   mode = "before" → time = arriveBy   (上班用，找最後一班能準時抵達)
 //   mode = "after"  → time = departAfter(下班用，找最早一班可搭)
+//   includeDelay = true 時加打 StationLiveBoard，回傳的車次帶 delayMin 欄位（即時誤點分鐘）
 // Output (JSON):      { best, candidates, mode, date, from, to }
 
 const TDX_AUTH = 'https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token';
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { fromStation, toStation, mode, time, date, trainTypes, limit } = body || {};
+    const { fromStation, toStation, mode, time, date, trainTypes, limit, includeDelay } = body || {};
 
     if (!fromStation || !toStation || !mode || !time || !date) {
       return json({ error: 'missing required fields: fromStation, toStation, mode, time, date' }, 400);
@@ -156,8 +157,30 @@ Deno.serve(async (req) => {
     const maxResults = (typeof limit === 'number' && limit >= 0) ? limit : 5;
     const sliced = maxResults === 0 ? candidates : candidates.slice(0, maxResults);
 
+    // 加打 TrainLiveBoard 取即時誤點（全臺鐵所有運行中車次，可對齊候選車次）
+    // best-effort，失敗不擋主流程
+    if (includeDelay) {
+      try {
+        const lbUrl = `${TDX_API}/TrainLiveBoard?%24format=JSON`;
+        const lbRes = await fetchTimetableWithRetry(lbUrl, token);
+        if (lbRes.ok) {
+          const lbData = await lbRes.json();
+          const delayMap: Record<string, number> = {};
+          for (const t of (lbData.TrainLiveBoards || [])) {
+            if (t.TrainNo != null && typeof t.DelayTime === 'number') {
+              delayMap[String(t.TrainNo)] = t.DelayTime;
+            }
+          }
+          for (const c of sliced) {
+            const d = delayMap[String(c.trainNo)];
+            if (d !== undefined) (c as any).delayMin = d;
+          }
+        }
+      } catch (_e) { /* ignore */ }
+    }
+
     return json({
-      best: candidates[0] ?? null,
+      best: sliced[0] ?? null,
       candidates: sliced,
       mode,
       date,

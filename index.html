@@ -282,6 +282,8 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 .live-card-times{font-family:'DM Mono',monospace;font-size:14px;color:var(--tx2)}
 .live-card-arrow{color:var(--tx3);margin:0 4px}
 .live-card-dur{font-size:11px;color:var(--tx3);margin-left:10px}
+.live-card-delay{color:#ef4444;font-size:12px;font-weight:700;margin-left:4px}
+.live-card-ontime{color:#10b981;font-size:12px;font-weight:700;margin-left:4px}
 
 @media (hover: none) {
   .nav-tab:hover{color:var(--tx3)}
@@ -1769,7 +1771,7 @@ async function _queryLive(){
       },
       body:JSON.stringify({
         fromStation:_liveFrom, toStation:_liveTo,
-        mode:'after', time, date, limit:5
+        mode:'after', time, date, limit:5, includeDelay:true
       })
     });
     const data = await res.json();
@@ -1812,10 +1814,16 @@ function _renderLiveResults(){
     const dur = arrMin - depMin;
     const remaining = depMin - nowMin;
     const cdText = remaining === 0 ? '即將發車' : `${remaining} 分後發車`;
+    let delayBadge = '';
+    if(typeof c.delayMin === 'number'){
+      delayBadge = c.delayMin > 0
+        ? ` <span class="live-card-delay">誤點 ${c.delayMin} 分</span>`
+        : ` <span class="live-card-ontime">準點</span>`;
+    }
     return `
       <div class="live-card">
         <div class="live-card-head">
-          <div class="live-card-train">${_shortTrainType(c.trainType)} ${c.trainNo}</div>
+          <div class="live-card-train">${_shortTrainType(c.trainType)} ${c.trainNo}${delayBadge}</div>
           <div class="live-card-countdown">${cdText}</div>
         </div>
         <div class="live-card-times">
