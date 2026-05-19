@@ -468,7 +468,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 const SUPABASE_URL     = 'https://oqyjixphmdrhcmomskth.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xeWppeHBobWRyaGNtb21za3RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTQzMzEsImV4cCI6MjA5MjUzMDMzMX0.TfsdVXmN_lhy3fM2LlZ27MAPIhRI-8agSVXiycvaGis';
 const IMAGE_BASE       = 'images/';   // GitHub repo 圖片資料夾
-const EDIT_MODE = new URLSearchParams(window.location.search).get('edit') === '1';
+const EDIT_MODE = new URLSearchParams(window.location.search).get('admin') === '1';
 const COMPACT_MODE = new URLSearchParams(window.location.search).get('compact') === '1';
 
 // ══════════════════════════════════════════════
@@ -532,12 +532,43 @@ async function loadRemote(){
   ST.commuteConfig = map.commute_config || null;
   buildShiftMap();
 }
+// ── 寫入密碼管理 ──────────────────────────────
+const _WTK = 'rw_write_token';
+function _getWT(){ return localStorage.getItem(_WTK); }
+function _saveWT(t){ localStorage.setItem(_WTK, t); }
+function _clearWT(){ localStorage.removeItem(_WTK); }
+let _wtResolve = null;
+function _requireWT(){
+  const t = _getWT();
+  if(t) return Promise.resolve(t);
+  return new Promise(resolve => {
+    _wtResolve = resolve;
+    setModal('管理員驗證',
+      `<div class="fg"><label class="fl">寫入密碼</label>
+       <input class="fi" type="password" id="wtInput" placeholder="請輸入密碼" autocomplete="current-password" style="font-size:16px"></div>`,
+      [{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'確認',cls:'btn-primary',fn:'_confirmWT()'}]
+    );
+    setTimeout(()=>document.getElementById('wtInput')?.focus(),100);
+  });
+}
+window._confirmWT = function(){
+  const val = (document.getElementById('wtInput')?.value||'').trim();
+  if(!val) return;
+  _saveWT(val); closeM();
+  if(_wtResolve){ _wtResolve(val); _wtResolve=null; }
+};
 async function dbSet(key, value){
-  await sbFetch('/rest/v1/app_data', {
+  const token = await _requireWT();
+  const res = await fetch(SB + '/functions/v1/write-data', {
     method: 'POST',
-    headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+SUPABASE_ANON_KEY, 'X-Write-Token': token },
     body: JSON.stringify({key, value})
   });
+  if(!res.ok){
+    if(res.status === 401){ _clearWT(); throw new Error('密碼錯誤，請重新操作'); }
+    const t = await res.text();
+    throw new Error(res.status+' '+t.slice(0,120));
+  }
 }
 async function initDB(){
   // Step 1: Always load local first — app is usable immediately
