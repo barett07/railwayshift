@@ -15,7 +15,7 @@ const STATION_MAP: Record<string, string> = {"基隆":"0900","三坑":"0910","�
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://barett07.github.io',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
 };

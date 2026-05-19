@@ -473,6 +473,8 @@ const COMPACT_MODE = new URLSearchParams(window.location.search).get('compact') 
 
 // ══════════════════════════════════════════════
 
+const escapeHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
@@ -708,19 +710,19 @@ function buildDayCard(ds,label,isToday){
     const imgSrc=shift.imageUrl||(IMAGE_BASE+shift.name+'.jpeg');
     body=`<div class="dc-body">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px">
-        <div class="shift-num" style="margin-bottom:0;line-height:1">${shift.name}</div>
+        <div class="shift-num" style="margin-bottom:0;line-height:1">${escapeHtml(shift.name)}</div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">⏱ 上班時間</div>
           <div style="font-size:30px;font-weight:900;font-family:'DM Mono',monospace;color:#fff;line-height:1">${fmt(startT)}</div>
         </div>
       </div>
-      ${shift.specialNote?`<div class="s-note" style="margin-bottom:10px">📋 ${shift.specialNote}</div>`:''}
+      ${shift.specialNote?`<div class="s-note" style="margin-bottom:10px">📋 ${escapeHtml(shift.specialNote)}</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${board?`<div class="ti" style="flex:1"><div class="ti-label">🚉 上班搭車</div><div class="ti-val hi">${board}</div></div>`:''}
         ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
-      ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${info.note}</div>`:''}
-      <img class="shift-img" src="${imgSrc}" alt="${shift.name}" onerror="this.style.display='none'"></div>`;
+      ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${escapeHtml(info.note)}</div>`:''}
+      <img class="shift-img" src="${imgSrc}" alt="${escapeHtml(shift.name)}" onerror="this.style.display='none'"></div>`;
   }else if(info.type==='work'&&!shift&&info.shiftId){
     // 自訂班號（不在資料庫）：直接顯示班號與手動填入的時間
     const board=info.customBoard||'';
@@ -728,7 +730,7 @@ function buildDayCard(ds,label,isToday){
     const startT=info.customStart||'';
     body=`<div class="dc-body">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px">
-        <div class="shift-num" style="margin-bottom:0;line-height:1">${info.shiftId}</div>
+        <div class="shift-num" style="margin-bottom:0;line-height:1">${escapeHtml(info.shiftId)}</div>
         ${startT?`<div style="text-align:right;flex-shrink:0">
           <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">⏱ 上班時間</div>
           <div style="font-size:30px;font-weight:900;font-family:'DM Mono',monospace;color:#fff;line-height:1">${startT}</div>
@@ -738,8 +740,8 @@ function buildDayCard(ds,label,isToday){
         ${board?`<div class="ti" style="flex:1"><div class="ti-label">🚉 上班搭車</div><div class="ti-val hi">${board}</div></div>`:''}
         ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
-      ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${info.note}</div>`:''}
-      <img class="shift-img" src="${IMAGE_BASE}${info.shiftId}.jpeg" alt="${info.shiftId}"
+      ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${escapeHtml(info.note)}</div>`:''}
+      <img class="shift-img" src="${IMAGE_BASE}${info.shiftId}.jpeg" alt="${escapeHtml(info.shiftId)}"
         onerror="this.style.display='none'">
     </div>`;
   }else if(info.type==='standby'){
@@ -1192,15 +1194,15 @@ function renderShifts(){
     const isV=/[AV]$/.test(s.name)||s.name.includes('AV');
     const board=s.boardTime||'', alight=s.alightTime||'';
     return `<div class="sc ${isV?'variant':''}">
-      <div class="sc-name">${s.name} ${isV?'<span class="var-tag">假日變班</span>':''}</div>
-      ${s.specialNote?`<div class="sc-note">📋 ${s.specialNote}</div>`:''}
+      <div class="sc-name">${escapeHtml(s.name)} ${isV?'<span class="var-tag">假日變班</span>':''}</div>
+      ${s.specialNote?`<div class="sc-note">📋 ${escapeHtml(s.specialNote)}</div>`:''}
       <div class="sc-times">
         <div><div class="sct-label">⏱ 上班</div><div class="sct-val">${fmt(s.startTime)}</div></div>
         <div><div class="sct-label">🏁 下班</div><div class="sct-val">${fmt(s.endTime)}</div></div>
         <div><div class="sct-label">🚉 上班搭車</div><div class="sct-val ${board?'':'empty'}">${board||'未設定'}</div></div>
         <div><div class="sct-label">🏠 下班搭車</div><div class="sct-val ${alight?'':'empty'}">${alight||'未設定'}</div></div>
       </div>
-      ${(s.depTrain||s.arrTrain)?`<div class="sc-ref">首班 ${s.depTrain||'—'} / 末班 ${s.arrTrain||'—'}</div>`:''}
+      ${(s.depTrain||s.arrTrain)?`<div class="sc-ref">首班 ${escapeHtml(s.depTrain||'—')} / 末班 ${escapeHtml(s.arrTrain||'—')}</div>`:''}
       ${s.isOvernight?'<span class="on-badge">⟳ 跨日班</span>':''}
       ${s.imageUrl?`<img class="sc-thumb" src="${s.imageUrl}" alt="">`:''}
       <div class="sc-foot">
