@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
     return new Response('Invalid JSON', { status: 400, headers: CORS })
   }
 
-  const { key, value } = body
+  const { key, value, verify } = body as { key?: string; value?: unknown; verify?: boolean }
+  if (verify) return new Response(null, { status: 204, headers: CORS })
   if (!key) return new Response('Missing key', { status: 400, headers: CORS })
 
   const supabase = createClient(
