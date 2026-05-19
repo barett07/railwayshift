@@ -240,12 +240,27 @@ let _liveTimer = null;   // 60 秒 setInterval，更新倒數
 
 直接打 `tdx-search` Edge Function，**不快取**：
 ```js
-{ fromStation:_liveFrom, toStation:_liveTo, mode:'after', time:<現在 HH:MM>, date:<今天>, limit:5 }
+{ fromStation:_liveFrom, toStation:_liveTo, mode:'after', time:<現在 HH:MM>, date:<今天>, limit:5, includeDelay:true }
 ```
 
 沒帶 `trainTypes` → 顯示全部車種。
 
-⚠️ 仍受 TDX 免費版 5 次/分鐘限制，但這頁是「手動觸發」，user 自己掌控節奏，不太會撞牆。
+⚠️ 每次查詢實際打 TDX **2 次**（時刻表 + TrainLiveBoard），仍受 5 次/分鐘限制，但這頁是「手動觸發」，user 自己掌控節奏，不太會撞牆。
+
+### 誤點/準點顯示
+
+`includeDelay:true` 會讓 Edge Function 加打 `/Rail/TRA/TrainLiveBoard`（不帶路徑參數，回**全臺鐵當下所有運行中車次** ~150 班），用 TrainNo 對齊候選車次，附上 `delayMin` 欄位。
+
+前端顯示邏輯：
+| `delayMin` | 顯示 |
+|---|---|
+| `> 0` | 紅色「誤點 N 分」（`#ef4444`，`.live-card-delay`） |
+| `=== 0` | 綠色「準點」（`#10b981`，`.live-card-ontime`） |
+| `undefined` | 不顯示（車次還沒進入運行範圍，無即時資料） |
+
+**踩過的坑**：原本用 `StationLiveBoard/Station/{StationID}` 只回 ~2-5 班「即將進站」車次，且不分方向，跟我們 OD 候選車次幾乎沒交集。改用 `/TrainLiveBoard` 全臺鐵列表後才能對齊。
+
+⚠️ **誤點/準點只適用即時查車**。工作班 picker 跟批次更新查的是「明天」的時刻，誤點資料是「今天即時」，意義不對 → 那兩處不傳 `includeDelay`。
 
 ### 站名「臺」vs「台」
 
