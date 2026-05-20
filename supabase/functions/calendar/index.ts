@@ -67,6 +67,15 @@ Deno.serve(async () => {
     'X-WR-TIMEZONE:Asia/Taipei',
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
     'X-PUBLISHED-TTL:PT1H',
+    'BEGIN:VTIMEZONE',
+    'TZID:Asia/Taipei',
+    'BEGIN:STANDARD',
+    'DTSTART:19700101T000000',
+    'TZOFFSETFROM:+0800',
+    'TZOFFSETTO:+0800',
+    'TZNAME:CST',
+    'END:STANDARD',
+    'END:VTIMEZONE',
   ];
 
   const cur = new Date(start);
@@ -115,7 +124,7 @@ Deno.serve(async () => {
 
   lines.push('END:VCALENDAR');
 
-  return new Response(lines.join('\r\n'), {
+  return new Response(lines.join('\r\n') + '\r\n', {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Cache-Control': 'no-cache',

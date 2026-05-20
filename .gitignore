@@ -1,0 +1,10 @@
+.DS_Store
+supabase/.DS_Store
+supabase/.temp/
+.venv/
+images_new/
+images手截備份/
+AGENTS.md
+*.xlsx
+*.py
+115*/
