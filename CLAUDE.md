@@ -289,6 +289,10 @@ A Supabase Edge Function generates a live `.ics` feed for Apple Calendar subscri
 
 **Variant shift fallback**: If a shiftId like `576V` is not found in the shift map, the Edge Function strips the suffix (`V`/`AV`) and retries with the base ID.
 
+**iCal 格式注意事項（踩過的坑）**：
+- `DTSTART;TZID=Asia/Taipei` 一定要搭配 `BEGIN:VTIMEZONE` 區塊，否則 Google Calendar 拒絕解析（顯示「無法新增日曆」）。calendar/index.ts 已在 VCALENDAR header 後面加入完整的 VTIMEZONE 區塊。
+- `lines.join('\r\n')` 後要加 `+ '\r\n'`，最後一行才有正確結尾。
+
 ## Excel Import
 
 There are **two distinct Excel import flows**:
