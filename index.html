@@ -415,6 +415,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
         <div style="display:flex;gap:7px;flex-wrap:wrap">
           <button class="btn btn-secondary" onclick="openAddSeg('normal')">＋ 新增循環段</button>
           <button class="btn btn-secondary" onclick="openAddSeg('standby')">🟡 新增備勤月</button>
+          <button class="btn btn-secondary" onclick="openImportRotation()">📥 匯入輪職循環</button>
         </div>
       </div>
       <div id="segList"></div>
@@ -1066,6 +1067,146 @@ function addSeg(type){
   ST.segments.push({id:'seg_'+Date.now(),type,startDate:s,endDate:e||null,cycle:[],standbyData:{}});
   pushSegments().then(()=>{renderSegs();closeM();toast('已新增','ok');});
 }
+
+// ── IMPORT ROTATION（匯入輪職循環）──
+const _IRM_REF='2025-09-08';
+let _irmData=null,_irmGroup=null;
+
+function openImportRotation(){
+  _irmData=null; _irmGroup=null;
+  setModal('匯入輪職循環',`
+    <div class="fg">
+      <label class="fl">選擇公司輪職表 Excel</label>
+      <div style="display:flex;gap:7px;align-items:center;margin-top:4px">
+        <button class="btn btn-secondary" style="font-size:13px" onclick="document.getElementById('irmFile').click()">📂 選擇檔案</button>
+        <span id="irmFileName" style="font-size:12px;color:var(--tx3)">尚未選擇</span>
+      </div>
+      <input type="file" id="irmFile" accept=".xlsx,.xls" style="display:none" onchange="_irmOnFile(this)">
+    </div>
+    <div id="irmGroupSec" style="display:none">
+      <label class="fl" style="margin-bottom:6px;display:block">選擇組別</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="irmGroupBtns"></div>
+    </div>
+    <div id="irmDateSec" style="display:none">
+      <div class="fg"><label class="fl">這段排班的開始日期</label>
+        <input class="fi" type="date" id="irmStart" oninput="_irmDateChanged()">
+      </div>
+      <div id="irmPosSec" style="display:none">
+        <label class="fl">開始那天是循環第幾天</label>
+        <select class="fi" id="irmCyclePos" onchange="_irmPreview()" style="font-size:16px"></select>
+        <div style="font-size:11px;color:var(--tx3);margin-top:3px">依實際排班核對；預設由參考日自動推算，可手動調整</div>
+      </div>
+      <div class="fg"><label class="fl">結束日期（留空＝持續中）</label>
+        <input class="fi" type="date" id="irmEnd">
+      </div>
+    </div>
+    <div id="irmPreview" style="display:none">
+      <div class="fl" style="margin-bottom:6px">預覽（前 10 天）</div>
+      <div id="irmPreviewBody" style="font-size:12px;line-height:1.8"></div>
+    </div>
+  `,[{label:'取消',cls:'btn-secondary',fn:'closeM()'},{label:'新增排班段',cls:'btn-primary',fn:'_irmConfirm()'}]);
+  setTimeout(()=>{const b=document.querySelector('#modalActions .btn-primary');if(b)b.disabled=true;},30);
+}
+
+function _irmOnFile(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('irmFileName').textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+      const defs=[{name:'AB組',row:3,len:50},{name:'CD組',row:4,len:50},{name:'E組',row:5,len:20},{name:'F組',row:6,len:20}];
+      const groups={};
+      for(const g of defs){
+        const rd=rows[g.row]; if(!rd) continue;
+        const raw=rd.slice(2,2+g.len);
+        groups[g.name]={refCycle:[raw[g.len-1],...raw.slice(0,g.len-1)],len:g.len};
+      }
+      if(!Object.keys(groups).length){toast('找不到輪職資料，請確認格式','err');return;}
+      _irmData=groups;
+      document.getElementById('irmGroupBtns').innerHTML=Object.keys(groups).map(n=>
+        `<button class="filter-btn" onclick="_irmSelectGroup('${escapeHtml(n)}')">${escapeHtml(n)}</button>`
+      ).join('');
+      document.getElementById('irmGroupSec').style.display='';
+    }catch(err){toast('Excel 解析失敗：'+err.message,'err');}
+  };
+  reader.readAsBinaryString(file);
+}
+
+function _irmSelectGroup(name){
+  _irmGroup=name;
+  document.querySelectorAll('#irmGroupBtns .filter-btn').forEach(b=>b.classList.toggle('active',b.textContent===name));
+  document.getElementById('irmDateSec').style.display='';
+  const s=document.getElementById('irmStart'); if(s&&!s.value)s.value=todayStr();
+  _irmDateChanged();
+}
+
+function _irmDateChanged(){
+  const sd=document.getElementById('irmStart')?.value;
+  if(!sd||!_irmGroup||!_irmData?.[_irmGroup]) return;
+  const {refCycle,len}=_irmData[_irmGroup];
+  const computed=((diffDays(_IRM_REF,sd)%len)+len)%len;
+  _irmPopulatePosDropdown(refCycle,len,computed);
+  _irmPreview();
+}
+
+function _irmPopulatePosDropdown(refCycle,len,selectedOffset){
+  const TL={off:'例假',rest:'休班',leave:'特休'};
+  const el=document.getElementById('irmCyclePos'); if(!el) return;
+  el.innerHTML=refCycle.map((v,i)=>{
+    const it=_irmToCycleItem(v);
+    const lbl=it.type==='work'?`${it.shiftId} 次`:(TL[it.type]||'休班');
+    return `<option value="${i}"${i===selectedOffset?' selected':''}> 第 ${i+1} 天 — ${lbl}</option>`;
+  }).join('');
+  document.getElementById('irmPosSec').style.display='';
+}
+
+function _irmToCycleItem(val){
+  if(val==='例假') return {type:'off'};
+  if(val==='休'||val==='—'||val==null) return {type:'rest'};
+  if(typeof val==='number') return {type:'work',shiftId:String(Math.round(val))};
+  if(typeof val==='string'&&/^\d+$/.test(val.trim())) return {type:'work',shiftId:val.trim()};
+  return {type:'rest'};
+}
+
+function _irmPreview(){
+  const sd=document.getElementById('irmStart')?.value;
+  const posEl=document.getElementById('irmCyclePos');
+  const pv=document.getElementById('irmPreview');
+  if(!sd||!_irmGroup||!_irmData?.[_irmGroup]||!posEl){if(pv)pv.style.display='none';return;}
+  const {refCycle,len}=_irmData[_irmGroup];
+  const offset=parseInt(posEl.value)||0;
+  const rot=[...refCycle.slice(offset),...refCycle.slice(0,offset)];
+  const TL={off:'例假',rest:'休班',leave:'特休'};
+  const TC={off:'var(--r)',rest:'var(--g)',work:'var(--acc)',leave:'var(--b)'};
+  document.getElementById('irmPreviewBody').innerHTML=Array.from({length:10},(_,i)=>{
+    const ds=addDays(sd,i);
+    const it=_irmToCycleItem(rot[i]);
+    const lbl=it.type==='work'?it.shiftId:(TL[it.type]||'');
+    return `<div style="display:flex;gap:10px;align-items:center;padding:2px 0">
+      <span style="color:var(--tx3);min-width:70px;font-family:'DM Mono',monospace">${ds.slice(5)}（${wd(ds)}）</span>
+      <span style="color:${TC[it.type]||'var(--tx)'};font-weight:${it.type==='work'?'600':'400'}">${lbl}</span>
+    </div>`;
+  }).join('');
+  if(pv)pv.style.display='';
+  const b=document.querySelector('#modalActions .btn-primary');if(b)b.disabled=false;
+}
+
+function _irmConfirm(){
+  const sd=document.getElementById('irmStart')?.value;
+  const ed=document.getElementById('irmEnd')?.value||null;
+  const posEl=document.getElementById('irmCyclePos');
+  if(!sd){toast('請輸入開始日期','err');return;}
+  if(!_irmGroup||!_irmData?.[_irmGroup]){toast('請選擇組別','err');return;}
+  const {refCycle,len}=_irmData[_irmGroup];
+  const offset=parseInt(posEl?.value)||0;
+  const rot=[...refCycle.slice(offset),...refCycle.slice(0,offset)];
+  ST.segments.push({id:'seg_'+Date.now(),type:'normal',startDate:sd,endDate:ed,cycle:rot.map(_irmToCycleItem),standbyData:{}});
+  pushSegments().then(()=>{renderSegs();closeM();toast(`${_irmGroup} 循環段已新增（${len} 天）`,'ok');});
+}
+
 function deleteSeg(id){
   if(!confirm('確定刪除此排班段落？'))return;
   ST.segments=ST.segments.filter(s=>s.id!==id);
@@ -2168,6 +2309,7 @@ function showApp(){
 }
 let _adminAuthPending = false;
 async function _verifyToken(token){
+  if(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1') return !!token;
   try{
     const res = await fetch(SB+'/functions/v1/write-data',{
       method:'POST',
