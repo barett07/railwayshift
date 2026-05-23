@@ -319,6 +319,31 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 | `休` or `—` or blank | rest | 'work' or 'off' |
 | App type `leave`/`rest`/`standby` (no shift) | — | never flagged for rest/off Excel days |
 
+### 3. Rotation Schedule Import (`openImportRotation`)
+
+匯入公司「組別輪職表.xlsx」建立輪班循環段。UI 按鈕在排班設定分頁（admin 模式）。
+
+**Excel 結構**（固定格式）：
+| Row (0-indexed) | 內容 |
+|---|---|
+| 3 | AB組，50 天循環，cols 2–51（第 1–49 天 + 第 0 天） |
+| 4 | CD組，50 天循環，同上 |
+| 5 | E組，20 天循環，cols 2–21 |
+| 6 | F組，20 天循環，cols 2–21 |
+
+- 每行最後一欄（標籤為「0」）= 循環位置 0；解析時移到陣列開頭
+- **參考日**：`2025-09-08`（`_IRM_REF` 常數）= 所有組別的循環位置 0
+
+**循環對齊邏輯**：
+- 自動從參考日推算開始日期落在循環的第幾天（`offset`）
+- UI 顯示「開始那天是循環第幾天」下拉選單供 Stan 核對；手動改選後預覽即時更新
+- `offset` 決定 refCycle 的旋轉量：`rotated = [...refCycle.slice(offset), ...refCycle.slice(0, offset)]`
+- `rotated[0]` = 開始日當天的班別 → `getDayInfo` 的 `diffDays(seg.startDate, ds) % len` 對齊正確
+
+**值對應**：`例假` → `off`、`休` / `—` / null → `rest`、數字 → `work`（shiftId）
+
+**右側「銜接」表**（同一 Excel）：特殊交接符號（如 `586A`、`70例`），目前不解析，忽略即可。
+
 ## 班卡圖片裁切工具
 
 **`auto_crop.py`** — 用 ocrmac (macOS Vision OCR) + numpy 偵測班表 JPG 格線，自動裁切成個別班卡 JPEG。
@@ -363,7 +388,9 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 
 ### CORS
 - `tdx-search`：限定 `https://barett07.github.io`
+- `write-data`：限定 `https://barett07.github.io`
 - `calendar`：保留 `*`（Apple / Google Calendar 訂閱用）
+- **本機開發繞過**：`_verifyToken()` 在 `localhost` / `127.0.0.1` 時直接接受非空 token，不打 Supabase（寫入仍因 CORS 失敗，僅供 UI 測試用）
 
 ### 部署 Edge Function
 ```bash
