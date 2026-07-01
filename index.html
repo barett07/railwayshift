@@ -475,6 +475,16 @@ const COMPACT_MODE = new URLSearchParams(window.location.search).get('compact') 
 // ══════════════════════════════════════════════
 
 const escapeHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+function isShiftVariant(name){
+  return /(?:AV|V)$/.test(String(name ?? '').trim());
+}
+function getShiftImageSrc(shiftOrName){
+  const shift = typeof shiftOrName === 'object' && shiftOrName ? shiftOrName : null;
+  const name = String(shift?.name ?? shiftOrName ?? '').trim();
+  if(!name) return '';
+  if(isShiftVariant(name)) return IMAGE_BASE + name.replace(/(?:AV|V)$/,'') + '.jpeg';
+  return shift?.imageUrl || (IMAGE_BASE + name + '.jpeg');
+}
 
 // ══════════════════════════════════════════════
 // STATE
@@ -708,7 +718,7 @@ function buildDayCard(ds,label,isToday){
     const board=info.customBoard||shift.boardTime||'';
     const alight=info.customAlight||shift.alightTime||'';
     const startT=info.customStart||shift.startTime||'';
-    const imgSrc=shift.imageUrl||(IMAGE_BASE+shift.name+'.jpeg');
+    const imgSrc=getShiftImageSrc(shift);
     body=`<div class="dc-body">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px">
         <div class="shift-num" style="margin-bottom:0;line-height:1">${escapeHtml(shift.name)}</div>
@@ -742,7 +752,7 @@ function buildDayCard(ds,label,isToday){
         ${alight?`<div class="ti" style="flex:1"><div class="ti-label">🏠 下班搭車</div><div class="ti-val">${alight}</div></div>`:''}
       </div>
       ${info.note?`<div class="day-note" style="margin-top:10px">📝 ${escapeHtml(info.note)}</div>`:''}
-      <img class="shift-img" src="${IMAGE_BASE}${info.shiftId}.jpeg" alt="${escapeHtml(info.shiftId)}"
+      <img class="shift-img" src="${getShiftImageSrc(info.shiftId)}" alt="${escapeHtml(info.shiftId)}"
         onerror="this.style.display='none'">
     </div>`;
   }else if(info.type==='standby'){
@@ -757,7 +767,7 @@ function buildDayCard(ds,label,isToday){
       const prevDs=addDays(ds,-1);
       const prevInfo=getDayInfo(prevDs);
       const prevShift=prevInfo.shiftId?getShift(prevInfo.shiftId):null;
-      const prevImgSrc=prevShift?(prevShift.imageUrl||(IMAGE_BASE+prevShift.name+'.jpeg')):null;
+      const prevImgSrc=prevShift?getShiftImageSrc(prevShift):null;
       const prevAlight=prevShift?(prevInfo.customAlight||prevShift.alightTime||''):'';
       body=`${prevShift?`<div class="dc-body">
         <div style="font-size:10px;color:var(--tx3);margin-bottom:8px">📋 承接自昨日工作班 ${prevShift.name}</div>
@@ -1323,7 +1333,7 @@ function renderShifts(){
   const q=(document.getElementById('shiftSrch')?.value||'').toLowerCase();
   const list=ST.shifts.filter(s=>{
     const mq=!q||s.name.toLowerCase().includes(q);
-    const isV=/[AV]$/.test(s.name)||s.name.includes('AV');
+    const isV=isShiftVariant(s.name);
     if(shiftFilter==='variant')return mq&&isV;
     if(shiftFilter==='normal')return mq&&!isV;
     if(shiftFilter==='overnight')return mq&&s.isOvernight;
@@ -1332,7 +1342,7 @@ function renderShifts(){
   document.getElementById('shiftsCount').textContent=`共 ${ST.shifts.length} 班`;
   if(!list.length){ document.getElementById('shiftsList').innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div>找不到符合班次</div></div>`; return; }
   document.getElementById('shiftsList').innerHTML=list.map(s=>{
-    const isV=/[AV]$/.test(s.name)||s.name.includes('AV');
+    const isV=isShiftVariant(s.name);
     const board=s.boardTime||'', alight=s.alightTime||'';
     return `<div class="sc ${isV?'variant':''}">
       <div class="sc-name">${escapeHtml(s.name)} ${isV?'<span class="var-tag">假日變班</span>':''}</div>
