@@ -108,9 +108,9 @@ mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」（觸控裝置無�
 
 班次資料完全來自 Supabase（無硬編碼預設值）。若 Supabase 與 localStorage 皆無資料，`ST.shifts` 為空陣列。
 
-## Edit Mode
+## Edit Mode（管理模式）
 
-URL param `?edit=1` enables edit-only UI elements (`.edit-only` class). Edit mode shows "排班設定" and "工作班" nav tabs, and exposes day-card action buttons.
+URL param **`?admin=1`**（舊的 `?edit=1` 已廢棄）+ 後端密碼驗證通過後，才會套用 edit-mode class 顯示 edit-only UI（"排班設定"、"工作班" nav tabs、班卡操作按鈕）。詳見「資安架構 > 管理員模式」。
 
 ## Compact Mode（`?compact=1`）— Apple Watch 用
 
@@ -138,7 +138,7 @@ URL 參數 `?compact=1` 啟用「精簡模式」，給 Apple Watch 透過 iOS �
 - **Supabase key**：`commute_config`（走 `app_data` 表）
 - **localStorage key**：`rw2_commute_config`
 - **車站清單**：`TRA_STATIONS` 常數（~200 個臺鐵營運站，按路線排列）供 `<datalist>` autocomplete
-- **UI 位置**：工作班頁面頂部 `#commuteCard`（僅 `?edit=1` 看得到）
+- **UI 位置**：工作班頁面頂部 `#commuteCard`（僅管理模式 `?admin=1` 看得到）
 - **同步函式**：`pushCommuteConfig()`
 
 ### Edge Function `tdx-search`
@@ -346,6 +346,8 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 
 ## 班卡圖片裁切工具
 
+> **日常裁切已改用獨立專案 `shift-cropper` 的 GUI App**（雙擊 `班表裁切工具.app`），核心邏輯即移植自本腳本。`auto_crop.py` 保留作為備用／參數校正參考。
+
 **`auto_crop.py`** — 用 ocrmac (macOS Vision OCR) + numpy 偵測班表 JPG 格線，自動裁切成個別班卡 JPEG。
 
 **執行環境：** `.venv/`（Python 3.13，已安裝 ocrmac、numpy、Pillow）
@@ -399,6 +401,8 @@ supabase functions deploy write-data --project-ref oqyjixphmdrhcmomskth
 supabase functions deploy tdx-search --project-ref oqyjixphmdrhcmomskth
 supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth --no-verify-jwt
 ```
+
+⚠️ **verify_jwt 陷阱**（stock-tracker 曾因此連續失敗 6 週）：`calendar` 必須 `verify_jwt = false`（Apple/Google 訂閱端不帶 JWT）。CLI 要帶 `--no-verify-jwt`；用 Supabase MCP `deploy_edge_function` 部署時**預設是 true**，必須明確傳 `verify_jwt: false`。`write-data`／`tdx-search` 則維持 true（前端帶 anon key 呼叫，多一層閘道保護）。
 
 ### Supabase Secret
 - `WRITE_SECRET`：寫入密碼，Stan 自行設定，不在程式碼裡
