@@ -44,11 +44,14 @@ A Supabase Edge Function generates a live `.ics` feed for Apple Calendar subscri
 
 ## 部署 Edge Function
 
+**一律執行 `./deploy.sh`**——依 `supabase/config.toml` 的 verify_jwt 設定部署三個 function,並自動驗證(calendar 免 JWT 回 iCal、write-data/tdx-search 被閘道要求 JWT)。
+
+手動部署(不建議)等同:
 ```bash
 cd "/Users/stan/Claude Code/railwayshift"
 supabase functions deploy write-data --project-ref oqyjixphmdrhcmomskth
 supabase functions deploy tdx-search --project-ref oqyjixphmdrhcmomskth
-supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth --no-verify-jwt
+supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth   # config.toml 已設 verify_jwt=false
 ```
 
 ⚠️ **verify_jwt 陷阱**(stock-tracker 曾因此連續失敗 6 週):`calendar` 必須 `verify_jwt = false`(Apple/Google 訂閱端不帶 JWT)。CLI 要帶 `--no-verify-jwt`;用 Supabase MCP `deploy_edge_function` 部署時**預設是 true**,必須明確傳 `verify_jwt: false`。`write-data`/`tdx-search` 則維持 true(前端帶 anon key 呼叫,多一層閘道保護)。

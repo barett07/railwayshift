@@ -45,8 +45,16 @@
 4. 表單輸入框字體 ≥ 16px、觸控目標 ≥ 40px、外框用 `:focus-visible` 不用 `:focus`(→ `docs/ui.md`)
 5. **innerHTML 中所有使用者資料必須套 `escapeHtml()`**(→ `docs/backend.md`)
 6. **`isOvernight` 欄位不可信**(匯入時一律 false),跨夜判斷用 `endTime <= startTime`
-7. **部署 `calendar` function 必帶 `--no-verify-jwt`**;MCP 部署預設 verify_jwt=true 會靜默重置(→ `docs/backend.md`)
+7. **Edge Function 一律用 `./deploy.sh` 部署**(verify_jwt 已寫死在 `supabase/config.toml`,腳本含部署後自動驗證);避免用 MCP 部署,其 verify_jwt 預設 true 會靜默重置(→ `docs/backend.md`)
 8. TDX 站名用「臺」不用「台」,必須與 `STATION_MAP` key 完全一致(→ `docs/tdx.md`)
+
+## ✅ 改完自檢(交付前逐條確認)
+
+- 改了 CSS?→ 新增的 `:hover` 都加進 reset 區塊了;input 字體 ≥ 16px;觸控目標 ≥ 40px
+- 改了 innerHTML?→ 使用者資料都套了 `escapeHtml()`
+- 動了班次欄位?→ 沒碰 `depTrain` / `arrTrain`
+- 改了 Edge Function?→ 用 `./deploy.sh` 部署且驗證全綠
+- 在本地實際開啟頁面看過改動,不是只看程式碼
 
 ## 協作規則
 
