@@ -207,7 +207,8 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 .cal-nav-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
 .cal-month-drop{position:absolute;top:calc(100% + 6px);background:var(--s2);border:1px solid var(--bdr2);border-radius:var(--rad-s);box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:50;min-width:130px;overflow:hidden;display:none}
 .cal-month-drop.open{display:block}
-.cal-month-opt{padding:11px 18px;font-size:15px;cursor:pointer;transition:background .1s}
+.cal-month-opt{padding:11px 18px;font-size:15px;cursor:pointer;transition:background .1s;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cal-month-opt.cur{color:var(--acc);font-weight:700}
 .cal-month-opt:hover{background:var(--s3)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .cal-hd{text-align:center;font-size:12px;color:var(--tx3);padding:7px 0;font-weight:600}
@@ -224,13 +225,9 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 .cal-cell.standby .cc-type{color:var(--p)}
 .cc-shift{font-size:12px;color:var(--acc);font-variant-numeric:tabular-nums;font-weight:700}
 .cc-time{display:none}
-.cc-dot{width:6px;height:6px;border-radius:50%;margin-top:2px}
-.cal-cell.work .cc-dot{background:var(--acc)}
-.cal-cell.off .cc-dot{background:var(--r)}
-.cal-cell.rest .cc-dot{background:var(--g)}
-.cal-cell.leave .cc-dot{background:var(--b)}
-.cal-cell.standby .cc-dot{background:var(--p)}
-.cc-ex{position:absolute;top:4px;right:8px;width:5px;height:5px;border-radius:50%;background:var(--cyan)}
+.cal-cell.ex .cc-day{color:var(--cyan)}
+.cal-cell.today.ex .cc-day{color:#fff}
+.leg-ring{width:8px;height:8px;border-radius:50%;background:var(--cyan)}
 .cal-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;justify-content:center}
 .leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx3)}
 .leg-dot{width:8px;height:8px;border-radius:50%}
@@ -412,12 +409,12 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
     <!-- HOME -->
     <div id="page-home" class="page active">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <button class="cal-nav-btn" onclick="homeMove(-1)" aria-label="前一天">‹</button>
+        <button class="cal-nav-btn" onclick="homeMove(-1)" aria-label="前一天"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6 9 12l5.5 6"/></svg></button>
         <div style="text-align:center">
           <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em" id="homeLabel">今日 / 明日</div>
           <div id="todayDisp" style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
         </div>
-        <button class="cal-nav-btn" onclick="homeMove(1)" aria-label="後一天">›</button>
+        <button class="cal-nav-btn" onclick="homeMove(1)" aria-label="後一天"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 5.5 6-5.5 6"/></svg></button>
       </div>
       <div class="day-grid" id="dayCards"></div>
     </div>
@@ -426,12 +423,12 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
     <div id="page-calendar" class="page">
       <div class="cal-card">
         <div class="cal-nav">
-          <button class="cal-nav-btn" onclick="calMove(-1)" aria-label="上一個月">‹</button>
+          <button class="cal-nav-btn" onclick="calMove(-1)" aria-label="上一個月"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6 9 12l5.5 6"/></svg></button>
           <div class="cal-nav-wrap">
             <div class="cal-title" id="calTitle" onclick="toggleCalDrop()"></div>
             <div class="cal-month-drop" id="calMonthDrop"></div>
           </div>
-          <button class="cal-nav-btn" onclick="calMove(1)" aria-label="下一個月">›</button>
+          <button class="cal-nav-btn" onclick="calMove(1)" aria-label="下一個月"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 5.5 6-5.5 6"/></svg></button>
         </div>
         <div class="cal-grid" id="calGrid"></div>
       </div>
@@ -441,7 +438,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
         <div class="leg-item"><div class="leg-dot" style="background:var(--g)"></div>休班</div>
         <div class="leg-item"><div class="leg-dot" style="background:var(--b)"></div>特休</div>
         <div class="leg-item"><div class="leg-dot" style="background:var(--p)"></div>備勤</div>
-        <div class="leg-item"><div class="cc-ex" style="position:static"></div>例外修改</div>
+        <div class="leg-item"><div class="leg-ring"></div>例外修改</div>
       </div>
       <div style="margin-top:14px;display:flex;gap:9px;justify-content:center;flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="subscribeCalendar()" style="font-size:13px;padding:9px 18px">📅 訂閱 Apple 行事曆</button>
@@ -1023,11 +1020,9 @@ function renderCal(){
     const cls=TC[info.type]||'';
     const shiftName=sh?sh.name:(info.type==='work'&&info.shiftId?info.shiftId:'');
     const typeLbl=info.type==='off'?'例假':info.type==='rest'?'休班':info.type==='leave'?'特休':info.type==='standby'?'備勤':'';
-    h+=`<div class="cal-cell ${cls} ${ds===today?'today':''}" onclick="goToDate('${ds}')" style="cursor:pointer">
-      ${info.isEx?'<div class="cc-ex"></div>':''}
+    h+=`<div class="cal-cell ${cls} ${ds===today?'today':''} ${info.isEx?'ex':''}" onclick="goToDate('${ds}')" style="cursor:pointer">
       <div class="cc-day">${d}</div>
       ${shiftName?`<div class="cc-shift">${shiftName}</div>`:typeLbl?`<div class="cc-type">${typeLbl}</div>`:''}
-      ${cls?'<div class="cc-dot"></div>':''}
     </div>`;
   }
   document.getElementById('calGrid').innerHTML=h;
@@ -1054,11 +1049,12 @@ function subscribeCalendar(){
 function toggleCalDrop(){
   const drop=document.getElementById('calMonthDrop');
   if(drop.classList.contains('open')){drop.classList.remove('open');return;}
-  const now=new Date(), ty=now.getFullYear(), tm=now.getMonth()+1;
-  drop.innerHTML=[0,1,2,3].map(o=>{
-    let y=ty,m=tm+o;
+  // 以目前檢視中的月份為基準：前 1 個月～後 3 個月
+  drop.innerHTML=[-1,0,1,2,3].map(o=>{
+    let y=calY,m=calM+o;
     if(m>12){m-=12;y++;}else if(m<1){m+=12;y--;}
-    return `<div class="cal-month-opt" onclick="jumpCalTo(${y},${m})">${y} 年 ${m} 月</div>`;
+    const cur=(y===calY&&m===calM);
+    return `<div class="cal-month-opt${cur?' cur':''}" onclick="jumpCalTo(${y},${m})">${y}年${m}月</div>`;
   }).join('');
   drop.classList.add('open');
 }

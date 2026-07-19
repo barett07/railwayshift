@@ -87,13 +87,14 @@ mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」(觸控裝置無「�
 
 ## Calendar(月曆頁面)
 
-- 整個月曆包在 `.cal-card` 大卡片內;格子**無框無底色**,置中直排:日期數字 → 班號(橘)或類型文字(對應色) → 小圓點(`.cc-dot`,對應色)
+- 整個月曆包在 `.cal-card` 大卡片內;格子**無框無底色**,置中直排:日期數字 → 班號(橘)或類型文字(對應色)。**不加小圓點**(加過 `.cc-dot`,Stan 嫌干擾已移除)
 - 今日:日期數字墊橘色實心圓(`.cal-cell.today .cc-day`)
 - 月初空格顯示**上月日期**(淡灰,`.cal-cell.empty`)
 - 類型文字(`cc-type`):純文字無 emoji;`work` 直接顯示班號(`cc-shift`)
 - 格子裡**不再顯示上班搭車時間**(`.cc-time` 已 `display:none`,markup 也移除)
-- 例外修改標記 `.cc-ex`:右上角小點,`var(--cyan)`
-- 切月按鈕 `.cal-nav-btn`:44px 圓形、橘色箭頭;點標題開月份下拉(功能不變)
+- 例外修改標記:**該日日期數字改青藍色**(`.cal-cell.ex .cc-day{color:var(--cyan)}`);今日+例外時「今日」優先(白字橘圓)。圓環、角落小點兩案都被 Stan 否決過,別再提
+- 切月按鈕 `.cal-nav-btn`:44px 圓形、SVG 箭頭(文字符號 ‹ › 會偏離圓心,已全面換 SVG,首頁切日期同)
+- 月份下拉:以**目前檢視月**為基準列「前 1～後 3 個月」,目前月橘色粗體;選項 `white-space:nowrap` 防兩位數月份折行
 
 ## Compact Mode(`?compact=1`)— Apple Watch 用
 
