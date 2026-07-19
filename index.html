@@ -47,7 +47,8 @@
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','PingFang TC','Noto Sans TC',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 
 /* NAV — 毛玻璃頂欄 + 底部浮動 Tab Bar */
-.topbar{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;height:54px}
+.topbar{background:transparent;border-bottom:1px solid transparent;transition:background .3s,border-color .3s;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;height:54px}
+.topbar.scrolled{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom-color:var(--bdr)}
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;letter-spacing:-.01em;color:var(--acc);white-space:nowrap}
 .tabbar{position:fixed;left:50%;bottom:max(8px,calc(env(safe-area-inset-bottom) - 16px));transform:translateX(-50%);z-index:150;display:flex;gap:3px;padding:5px;border-radius:999px;background:var(--glass-lq);-webkit-backdrop-filter:blur(28px) saturate(200%);backdrop-filter:blur(28px) saturate(200%);border:1px solid var(--glass-edge);box-shadow:0 12px 40px rgba(0,0,0,.32),0 1px 2px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 1px rgba(255,255,255,.05);max-width:calc(100vw - 20px);overflow-x:auto;scrollbar-width:none}
 .tabbar::-webkit-scrollbar{display:none}
@@ -371,7 +372,10 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
   .spinner{animation-duration:.8s!important}
 }
 @media (prefers-reduced-transparency: reduce){
-  .topbar,.tabbar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--s1)}
+  .topbar,.tabbar{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .tabbar{background:var(--s1)}
+  .topbar{background:transparent}
+  .topbar.scrolled{background:var(--s1)}
   .modal{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--s1)}
 }
 @media (prefers-contrast: more){
@@ -2498,6 +2502,9 @@ function _addSwipe(el,fn){
 _addSwipe(document.getElementById('page-home'),d=>homeMove(d));
 _addSwipe(document.getElementById('page-calendar'),d=>calMove(d));
 window.addEventListener('resize',_moveTabLens);
+(function(){const tb=document.querySelector('.topbar');if(!tb)return;
+  const on=()=>tb.classList.toggle('scrolled',window.scrollY>8);
+  window.addEventListener('scroll',on,{passive:true});on();})();
 
 /* ── 頂欄即時時鐘（顯示到秒） ── */
 function _tickClock(){

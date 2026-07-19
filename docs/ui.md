@@ -74,7 +74,8 @@ mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」(觸控裝置無「�
 
 ## 頂欄
 
-- 毛玻璃 sticky;右側:即時時鐘(`#topClock`,每秒更新,tabular-nums)＋連線燈(`#statusDot`)
+- sticky;右側:即時時鐘(`#topClock`,每秒更新,tabular-nums)＋連線燈(`#statusDot`)
+- **未捲動時完全透明**(與狀態列、頁面背景同色,消除黑-灰-黑割裂感),捲動 >8px 加 `.scrolled` 才浮現毛玻璃＋分隔線(scroll listener 在 `_moveTabLens` 的 resize 監聽旁);2026-07-19 Stan 反映色差後改的,**不要改回常駐毛玻璃**
 
 ## Day Card(首頁班卡)
 
