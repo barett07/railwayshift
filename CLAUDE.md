@@ -5,7 +5,7 @@
 ## 架構速覽
 
 - 整個 App 就一個 **`index.html`**(HTML + CSS + JS 全 inline),無 build tool、無 npm
-- CDN 依賴:SheetJS(Excel)、Google Fonts(Noto Sans TC、DM Mono)
+- CDN 依賴:SheetJS(Excel);字體用系統字體(2026-07-19 Apple Design 改版時移除 Google Fonts)
 - 後端:Supabase REST API(無 SDK,raw `fetch`),offline-first:先讀 localStorage(`rw2_shifts`、`rw2_segments`、`rw2_exceptions`)→ 背景同步 Supabase
 - Supabase 表 `app_data`(key/value):`shifts`、`segments`、`exceptions`、`commute_config`
 - 管理模式:`?admin=1` + 後端密碼驗證(舊 `?edit=1` 已廢棄);Watch 精簡模式:`?compact=1`
