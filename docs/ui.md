@@ -66,6 +66,12 @@ mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」(觸控裝置無「�
 
 範例:新增 `.foo:hover{color:var(--acc)}`(base 是 `color:var(--tx)`),就要在 reset 加 `.foo:hover{color:var(--tx)}`。
 
+**⚠️ 元素有 `.active` 之類的狀態 class 時,reset 要用 `:not(.active)` 排除**,否則 reset(在 CSS 末尾)會蓋掉 active 顏色,手機上會出現「點了分頁但顏色不變,要再點一下別處才變色」的 bug(2026-07-19 `.nav-tab` 踩過)。寫法:`.nav-tab:not(.active):hover{...}` ＋ `.nav-tab.active:hover{color:var(--acc)}`。
+
+### 5. 頁面轉場動畫與水平捲軸
+
+分頁轉場 `_slideIn` 會讓頁面短暫 `translateX(32px)` 超出視窗,`body` 必須保持 `overflow-x:hidden`,否則桌面會瞬間長出水平捲軸、把固定在底部的 Tab Bar 抬起來閃一下(2026-07-19 踩過)。
+
 ## 頂欄
 
 - 毛玻璃 sticky;右側:即時時鐘(`#topClock`,每秒更新,tabular-nums)＋連線燈(`#statusDot`)
