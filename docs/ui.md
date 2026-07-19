@@ -96,6 +96,8 @@ mobile Safari 點完按鈕後 `:hover` 狀態會「卡住」(觸控裝置無「�
 - 格子裡**不再顯示上班搭車時間**(`.cc-time` 已 `display:none`,markup 也移除)
 - 例外修改標記:**該日日期數字改青藍色**(`.cal-cell.ex .cc-day{color:var(--cyan)}`);今日+例外時「今日」優先(白字橘圓)。圓環、角落小點兩案都被 Stan 否決過,別再提
 - 切月按鈕 `.cal-nav-btn`:44px 圓形、SVG 箭頭(文字符號 ‹ › 會偏離圓心,已全面換 SVG,首頁切日期同)
+- **首頁切日期鈕加 `.glass` 修飾**(毛玻璃+光邊,同 Tab Bar 質感;月曆切月鈕維持平面,Stan 指定);新增的 `:hover` 與 `prefers-reduced-transparency` 降級都已有對應行
+- 即時查車 `.live-card` **無左側橘色帶**(2026-07-19 Stan 嫌與 Apple Design 不搭移除),四邊均勻細框
 - 月份下拉:以**目前檢視月**為基準列「前 1～後 3 個月」,目前月橘色粗體;選項 `white-space:nowrap` 防兩位數月份折行
 
 ## Compact Mode(`?compact=1`)— Apple Watch 用
