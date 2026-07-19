@@ -108,7 +108,7 @@ let _liveTimer = null;   // 60 秒 setInterval,更新倒數
 - **進頁不自動查**,user 必須手動按「🔄 查詢」
 - **改起/迄站、按交換**:只更新狀態 + 清空 `_liveResults`,**不打 TDX**
 - **起=迄防呆**:選到一樣會把另一邊清空
-- **過了現在時間的車自動消失**:`_renderLiveResults()` 每次都 filter `depMin >= nowMin`
+- **過了現在時間的車自動消失**:`_renderLiveResults()` 每次都 filter `depMin + max(delayMin,0) >= nowMin` — 誤點的車保留到「表定＋誤點」分鐘才消失,期間倒數欄固定顯示「即將發車」(2026-07-19 Stan 指定;`remaining <= 0` 都算即將發車)
 - **倒數更新**:`_startLiveTimer()` setInterval 60 秒,page 不在 active 時自動清掉
 
 ### TDX 呼叫

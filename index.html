@@ -2065,8 +2065,8 @@ function _renderLiveResults(){
   }
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
-  // 過了現在時間的車自動移除
-  _liveResults = _liveResults.filter(c => _hm2min(c.departureTime) >= nowMin);
+  // 過了現在時間的車自動移除;誤點的車保留到「表定＋誤點」分鐘
+  _liveResults = _liveResults.filter(c => _hm2min(c.departureTime) + (c.delayMin > 0 ? c.delayMin : 0) >= nowMin);
   if(!_liveResults.length){
     el.innerHTML = '<div style="text-align:center;padding:18px;color:var(--tx3);font-size:13px">無未來車次，請按「🔄 查詢」重新查詢</div>';
     return;
@@ -2076,7 +2076,7 @@ function _renderLiveResults(){
     const arrMin = _hm2min(c.arrivalTime);
     const dur = arrMin - depMin;
     const remaining = depMin - nowMin;
-    const cdText = remaining === 0 ? '即將發車' : `${remaining} 分後發車`;
+    const cdText = remaining <= 0 ? '即將發車' : `${remaining} 分後發車`;
     let delayBadge = '';
     if(typeof c.delayMin === 'number'){
       delayBadge = c.delayMin > 0
