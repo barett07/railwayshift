@@ -55,3 +55,21 @@ supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth   # config
 ```
 
 ⚠️ **verify_jwt 陷阱**(stock-tracker 曾因此連續失敗 6 週):`calendar` 必須 `verify_jwt = false`(Apple/Google 訂閱端不帶 JWT)。CLI 要帶 `--no-verify-jwt`;用 Supabase MCP `deploy_edge_function` 部署時**預設是 true**,必須明確傳 `verify_jwt: false`。`write-data`/`tdx-search` 則維持 true(前端帶 anon key 呼叫,多一層閘道保護)。
+
+## 區網預覽的管理模式與存檔提示(2026-07-26)
+
+**管理模式登入**:`_verifyToken()` 會打 `write-data` 的 `{verify:true}`,但 CORS 白名單只有
+`https://barett07.github.io`。從區網 IP 預覽時 fetch 被擋 → 例外被 `catch` 吞掉 → 回傳 false
+→ 畫面顯示**「密碼錯誤，請重試」**,密碼其實是對的。
+
+已用 `isPreviewHost()` 放行 localhost、`.local` 與三段私有 IP(`10/8`、`192.168/16`、`172.16/12`)。
+正式網域不符合任一條件,線上不會觸發。旁路只放行 UI,寫入仍被 CORS 擋,故區網預覽是唯讀。
+**不要放寬 `write-data` 的 CORS 白名單**來解這個問題。
+
+**存檔提示**:`push*()` 原本把 `dbSet()` 的錯誤 `catch` 起來只印 console,Promise 照樣 resolve,
+呼叫端無條件顯示「已儲存」。實際上雲端寫入失敗(CORS、401 密碼過期、網路異常)時只寫進了
+localStorage,下次 `initDB()` 的 `loadRemote()` 會用伺服器資料覆蓋掉,改動靜默消失。
+
+已改為 `push*()` 回傳 `'synced'` / `'local'`,14 個呼叫端一律走 `toastSaved(st, okMsg)`:
+同步成功顯示原訊息(綠),只存到本機顯示紅色警告。**新增 `push*()` 呼叫端時必須用 `toastSaved()`,
+不要直接 `toast('...','ok')`。**

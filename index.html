@@ -684,27 +684,34 @@ function setStatus(on){
     }
   }catch(e){}
 }
+// push* 一律回傳 'synced'(本機+雲端都成功)或 'local'(只寫進 localStorage)。
+// offline-first 架構下這兩件事會分開成功/失敗,呼叫端必須用 toastSaved() 據實顯示。
 async function pushShifts(){
   buildShiftMap();
   saveLocal();
-  if(!dbReady) return;
-  try{ await dbSet('shifts', ST.shifts); }catch(e){ console.error('pushShifts:', e.message); }
+  if(!dbReady) return 'local';
+  try{ await dbSet('shifts', ST.shifts); return 'synced'; }catch(e){ console.error('pushShifts:', e.message); return 'local'; }
 }
 async function pushSegments(){
   saveLocal();
-  if(!dbReady) return;
-  try{ await dbSet('segments', ST.segments); }catch(e){ console.error('pushSegments:', e.message); }
+  if(!dbReady) return 'local';
+  try{ await dbSet('segments', ST.segments); return 'synced'; }catch(e){ console.error('pushSegments:', e.message); return 'local'; }
 }
 async function pushException(ds, data){
   if(data) ST.exceptions[ds] = data; else delete ST.exceptions[ds];
   saveLocal();
-  if(!dbReady) return;
-  try{ await dbSet('exceptions', ST.exceptions); }catch(e){ console.error('pushException:', e.message); }
+  if(!dbReady) return 'local';
+  try{ await dbSet('exceptions', ST.exceptions); return 'synced'; }catch(e){ console.error('pushException:', e.message); return 'local'; }
 }
 async function pushCommuteConfig(){
   saveLocal();
-  if(!dbReady) return;
-  try{ await dbSet('commute_config', ST.commuteConfig); }catch(e){ console.error('pushCommuteConfig:', e.message); }
+  if(!dbReady) return 'local';
+  try{ await dbSet('commute_config', ST.commuteConfig); return 'synced'; }catch(e){ console.error('pushCommuteConfig:', e.message); return 'local'; }
+}
+// 存檔提示:雲端同步失敗時改動只在本機,下次載入會被伺服器資料覆蓋,必須讓使用者知道。
+function toastSaved(st, okMsg){
+  if(st === 'synced') toast(okMsg, 'ok');
+  else toast('已存到本機,雲端同步失敗——之後可能被伺服器資料覆蓋', 'err');
 }
 function loadLocal(){
   setStatus(false);
@@ -870,8 +877,8 @@ function buildDayCard(ds,label,isToday){
   </div>`;
 }
 
-function clearEx(ds){ if(!confirm('還原為原排班？'))return; pushException(ds,null).then(()=>{renderHome();renderCal();toast('已還原','ok');}); }
-function clearExFromModal(ds){ closeM(); pushException(ds,null).then(()=>{renderHome();renderCal();toast('已還原','ok');}); }
+function clearEx(ds){ if(!confirm('還原為原排班？'))return; pushException(ds,null).then(st=>{renderHome();renderCal();toastSaved(st,'已還原');}); }
+function clearExFromModal(ds){ closeM(); pushException(ds,null).then(st=>{renderHome();renderCal();toastSaved(st,'已還原');}); }
 
 // ══════════════════════════════════════════════
 // EXCEPTION MODAL
@@ -1006,7 +1013,7 @@ function saveEx(ds){
   const customBoard=document.getElementById('exBoard')?.value||'';
   const customAlight=document.getElementById('exAlight')?.value||'';
   const data={type,shiftId,note,customStart,customBoard,customAlight};
-  pushException(ds,data).then(()=>{closeM();renderHome();renderCal();calcLeaveStats();toast('已儲存例外','ok');});
+  pushException(ds,data).then(st=>{closeM();renderHome();renderCal();calcLeaveStats();toastSaved(st,'已儲存例外');});
 }
 
 // ══════════════════════════════════════════════
@@ -1148,13 +1155,13 @@ function saveSegDates(id){
   if(!s){toast('請輸入開始日期','err');return;}
   const seg=ST.segments.find(x=>x.id===id); if(!seg)return;
   seg.startDate=s; seg.endDate=e||null;
-  pushSegments().then(()=>{renderSegs();closeM();toast('日期已更新','ok');});
+  pushSegments().then(st=>{renderSegs();closeM();toastSaved(st,'日期已更新');});
 }
 function addSeg(type){
   const s=document.getElementById('segS').value,e=document.getElementById('segE').value;
   if(!s){toast('請輸入開始日期','err');return;}
   ST.segments.push({id:'seg_'+Date.now(),type,startDate:s,endDate:e||null,cycle:[],standbyData:{}});
-  pushSegments().then(()=>{renderSegs();closeM();toast('已新增','ok');});
+  pushSegments().then(st=>{renderSegs();closeM();toastSaved(st,'已新增');});
 }
 
 // ── IMPORT ROTATION（匯入輪職循環）──
@@ -1293,13 +1300,13 @@ function _irmConfirm(){
   const offset=parseInt(posEl?.value)||0;
   const rot=[...refCycle.slice(offset),...refCycle.slice(0,offset)];
   ST.segments.push({id:'seg_'+Date.now(),type:'normal',startDate:sd,endDate:ed,cycle:rot.map(_irmToCycleItem),standbyData:{}});
-  pushSegments().then(()=>{renderSegs();closeM();toast(`${_irmGroup} 循環段已新增（${len} 天）`,'ok');});
+  pushSegments().then(st=>{renderSegs();closeM();toastSaved(st,`${_irmGroup} 循環段已新增（${len} 天）`);});
 }
 
 function deleteSeg(id){
   if(!confirm('確定刪除此排班段落？'))return;
   ST.segments=ST.segments.filter(s=>s.id!==id);
-  pushSegments().then(()=>{renderSegs();toast('已刪除','ok');});
+  pushSegments().then(st=>{renderSegs();toastSaved(st,'已刪除');});
 }
 
 // ── CYCLE EDIT ──
@@ -1358,7 +1365,7 @@ function delCRow(i){ _editCycle=readCycle(); _editCycle.splice(i,1); renderCycle
 function saveCycle(){
   const cycle=readCycle();
   const seg=ST.segments.find(s=>s.id===_editSegId); if(seg)seg.cycle=cycle;
-  pushSegments().then(()=>{renderSegs();closeM();calcLeaveStats();toast(`循環已儲存（${cycle.length} 天）`,'ok');});
+  pushSegments().then(st=>{renderSegs();closeM();calcLeaveStats();toastSaved(st,`循環已儲存（${cycle.length} 天）`);});
 }
 
 // ── STANDBY ──
@@ -1388,7 +1395,7 @@ function saveStandby(segId,datesStr){
   if(!seg.standbyData)seg.standbyData={};
   dates.forEach(ds=>{ const sid=document.getElementById('sbsh_'+ds)?.value||''; const note=document.getElementById('sbn_'+ds)?.value||'';
     if(sid)seg.standbyData[ds]={shiftId:sid,note}; else delete seg.standbyData[ds]; });
-  pushSegments().then(()=>{renderSegs();closeM();renderHome();toast('備勤班別已儲存','ok');});
+  pushSegments().then(st=>{renderSegs();closeM();renderHome();toastSaved(st,'備勤班別已儲存');});
 }
 
 // ══════════════════════════════════════════════
@@ -1505,9 +1512,9 @@ function saveShift(id){
   };
   if(id) ST.shifts=ST.shifts.map(s=>s.id===id?entry:s); else ST.shifts.push(entry);
   ST.shifts=sortShifts(ST.shifts);
-  pushShifts().then(()=>{renderShifts();closeM();toast('已儲存','ok');});
+  pushShifts().then(st=>{renderShifts();closeM();toastSaved(st,'已儲存');});
 }
-function deleteShift(id){ if(!confirm('確定刪除？'))return; ST.shifts=ST.shifts.filter(s=>s.id!==id); pushShifts().then(()=>{renderShifts();toast('已刪除','ok');}); }
+function deleteShift(id){ if(!confirm('確定刪除？'))return; ST.shifts=ST.shifts.filter(s=>s.id!==id); pushShifts().then(st=>{renderShifts();toastSaved(st,'已刪除');}); }
 
 // ══════════════════════════════════════════════
 // 通勤資訊（自動查詢台鐵車次的個人設定）
@@ -1612,7 +1619,7 @@ function saveCommuteConfig(){
   if(isNaN(early)||early<0||early>120){ toast('下班可提早需在 0-120 分之間','err'); return; }
   if(!types.length){ toast('至少要勾選一種車種','err'); return; }
   ST.commuteConfig={ fromStation:from, toStation:to, bufferMin:buf, earlyMin:early, trainTypes:types };
-  pushCommuteConfig().then(()=>{ renderCommuteCard(); closeM(); toast('已儲存通勤資訊','ok'); });
+  pushCommuteConfig().then(st=>{ renderCommuteCard(); closeM(); toastSaved(st,'已儲存通勤資訊'); });
 }
 
 // ══════════════════════════════════════════════
@@ -1953,10 +1960,10 @@ function _applyTdxBatch(){
     else                    updates[r.shiftId].alightTime = r.newTime;
   }
   ST.shifts = ST.shifts.map(s => updates[s.id] ? { ...s, ...updates[s.id] } : s);
-  pushShifts().then(()=>{
+  pushShifts().then(st=>{
     closeM();
     renderShifts();
-    toast(`已套用 ${picks.length} 項變更`,'ok');
+    toastSaved(st,`已套用 ${picks.length} 項變更`);
   });
 }
 
@@ -2185,7 +2192,7 @@ function doImport(){
   if(!parsedXLSX?.length){toast('請先選擇 Excel 檔案','err');return;}
   if(!confirm(`確認匯入 ${parsedXLSX.length} 個工作班？`))return;
   ST.shifts=sortShifts(parsedXLSX); parsedXLSX=null;
-  pushShifts().then(()=>{renderShifts();closeM();toast(`已匯入 ${ST.shifts.length} 個工作班`,'ok');});
+  pushShifts().then(st=>{renderShifts();closeM();toastSaved(st,`已匯入 ${ST.shifts.length} 個工作班`);});
 }
 
 // ── CHECK SCHEDULE ──
@@ -2516,8 +2523,17 @@ function _tickClock(){
 _tickClock();
 setInterval(_tickClock,1000);
 let _adminAuthPending = false;
+// 本機/區網預覽主機:localhost、Bonjour 主機名、三段私有 IP 網段。
+// 正式網域 barett07.github.io 不符合任一條件,線上不會觸發。
+function isPreviewHost(){
+  const h=window.location.hostname;
+  return h==='localhost'||h==='127.0.0.1'||h.endsWith('.local')
+    ||/^10\./.test(h)||/^192\.168\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h);
+}
 async function _verifyToken(token){
-  if(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1') return !!token;
+  // 預覽旁路:write-data 的 CORS 白名單只允許正式網域,從 localhost 或區網 IP
+  // 驗證必失敗(且會被 catch 吞成「密碼錯誤」)。旁路僅放行 UI,實際寫入仍被 CORS 擋
+  if(isPreviewHost()) return !!token;
   try{
     const res = await fetch(SB+'/functions/v1/write-data',{
       method:'POST',
