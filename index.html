@@ -2523,12 +2523,12 @@ function _tickClock(){
 _tickClock();
 setInterval(_tickClock,1000);
 let _adminAuthPending = false;
-// 本機/區網預覽主機:localhost、Bonjour 主機名、三段私有 IP 網段。
-// 正式網域 barett07.github.io 不符合任一條件,線上不會觸發。
+// 本機預覽主機,只認 localhost。正式網域 barett07.github.io 不符合,線上不觸發。
+// 2026-07-26 曾放寬到私有網段供手機區網預覽;改用 iOS 模擬器後不再需要(模擬器來源即
+// 127.0.0.1),故收回。要恢復手機預覽再加回私有網段(→ docs/backend.md)。
 function isPreviewHost(){
   const h=window.location.hostname;
-  return h==='localhost'||h==='127.0.0.1'||h.endsWith('.local')
-    ||/^10\./.test(h)||/^192\.168\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h);
+  return h==='localhost'||h==='127.0.0.1';
 }
 async function _verifyToken(token){
   // 預覽旁路:write-data 的 CORS 白名單只允許正式網域,從 localhost 或區網 IP

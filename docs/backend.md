@@ -62,9 +62,19 @@ supabase functions deploy calendar --project-ref oqyjixphmdrhcmomskth   # config
 `https://barett07.github.io`。從區網 IP 預覽時 fetch 被擋 → 例外被 `catch` 吞掉 → 回傳 false
 → 畫面顯示**「密碼錯誤，請重試」**,密碼其實是對的。
 
-已用 `isPreviewHost()` 放行 localhost、`.local` 與三段私有 IP(`10/8`、`192.168/16`、`172.16/12`)。
-正式網域不符合任一條件,線上不會觸發。旁路只放行 UI,寫入仍被 CORS 擋,故區網預覽是唯讀。
+`isPreviewHost()` 一度放行 localhost、`.local` 與三段私有 IP(`10/8`、`192.168/16`、`172.16/12`),
+**同日稍晚收回成只認 `localhost` / `127.0.0.1`**——改用 iOS 模擬器測試後,模擬器開的是
+`http://localhost:<port>/`,私有網段那幾段永遠不會執行,留著只是放著一段會放寬驗證的死碼。
+
+要恢復手機區網預覽時,把私有網段加回 `isPreviewHost()`:
+```js
+|| h.endsWith('.local') || /^10\./.test(h) || /^192\.168\./.test(h)
+|| /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+```
+
+正式網域任何版本都不符合,線上不會觸發。旁路只放行 UI,寫入仍被 CORS 擋。
 **不要放寬 `write-data` 的 CORS 白名單**來解這個問題。
+同一套 `isPreviewHost()` 也用在 railwayroster 與 familycal,三者要一起改。
 
 **存檔提示**:`push*()` 原本把 `dbSet()` 的錯誤 `catch` 起來只印 console,Promise 照樣 resolve,
 呼叫端無條件顯示「已儲存」。實際上雲端寫入失敗(CORS、401 密碼過期、網路異常)時只寫進了
