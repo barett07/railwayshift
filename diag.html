@@ -1,0 +1,146 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="診斷">
+<title>版面診斷</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, 'PingFang TC', system-ui, sans-serif;
+    background: #f2f2f7; color: #1c1c1e;
+    padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+             calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  }
+  @media (prefers-color-scheme: dark) { body { background: #000; color: #f2f2f7; } }
+
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .sub { font-size: 13px; opacity: .6; margin-bottom: 16px; }
+
+  .card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  @media (prefers-color-scheme: dark) { .card { background: #1c1c1e; } }
+  .card h2 { font-size: 13px; font-weight: 700; opacity: .5; letter-spacing: .04em;
+             text-transform: uppercase; margin-bottom: 10px; }
+
+  .row { display: flex; justify-content: space-between; align-items: baseline;
+         padding: 5px 0; font-variant-numeric: tabular-nums; }
+  .row + .row { border-top: 1px solid rgba(128,128,128,.18); }
+  .row .k { opacity: .75; }
+  .row .v { font-weight: 600; }
+
+  .verdict { border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+             font-weight: 700; line-height: 1.5; }
+  .ok   { background: #d8f5dd; color: #0b6b23; }
+  .warn { background: #ffe8cc; color: #8a4b00; }
+  @media (prefers-color-scheme: dark) {
+    .ok   { background: #10331a; color: #5fe07f; }
+    .warn { background: #3a2400; color: #ffb454; }
+  }
+  .hint { font-size: 12px; opacity: .55; line-height: 1.5; margin-top: 4px; }
+</style>
+
+<h1>版面診斷</h1>
+<div class="sub" id="stamp">–</div>
+
+<div id="mode" class="verdict">–</div>
+
+<div class="card">
+  <h2>視窗高度單位</h2>
+  <div class="row"><span class="k">可見高度 innerHeight</span><span class="v" id="ih">–</span></div>
+  <div class="row"><span class="k">100vh</span><span class="v" id="vh">–</span></div>
+  <div class="row"><span class="k">100svh 最小</span><span class="v" id="svh">–</span></div>
+  <div class="row"><span class="k">100lvh 最大</span><span class="v" id="lvh">–</span></div>
+  <div class="row"><span class="k">100dvh 當下</span><span class="v" id="dvh">–</span></div>
+  <div class="hint">standalone 模式沒有網址列,四個數值應該相同。<br>
+    在 Safari 開則 svh &lt; lvh,差額就是網址列高度。</div>
+</div>
+
+<div class="card">
+  <h2>安全區域 safe-area-inset</h2>
+  <div class="row"><span class="k">上（瀏海／動態島）</span><span class="v" id="sat">–</span></div>
+  <div class="row"><span class="k">下（home indicator）</span><span class="v" id="sab">–</span></div>
+  <div class="row"><span class="k">左</span><span class="v" id="sal">–</span></div>
+  <div class="row"><span class="k">右</span><span class="v" id="sar">–</span></div>
+  <div class="hint">底部若大於 0,所有貼底的按鈕/Tab Bar 都必須加
+    <code>env(safe-area-inset-bottom)</code>,否則會被那條橫線壓到。</div>
+</div>
+
+<div class="card">
+  <h2>螢幕與環境</h2>
+  <div class="row"><span class="k">視窗寬</span><span class="v" id="w">–</span></div>
+  <div class="row"><span class="k">裝置像素比</span><span class="v" id="dpr">–</span></div>
+  <div class="row"><span class="k">螢幕解析度</span><span class="v" id="scr">–</span></div>
+  <div class="row"><span class="k">深色模式</span><span class="v" id="dark">–</span></div>
+  <div class="row"><span class="k">減少動態效果</span><span class="v" id="rm">–</span></div>
+  <div class="row"><span class="k">觸控裝置（hover: none）</span><span class="v" id="hov">–</span></div>
+</div>
+
+<div class="card">
+  <h2>User Agent</h2>
+  <div style="font-size:12px;opacity:.7;word-break:break-all" id="ua">–</div>
+</div>
+
+<div class="hint" style="text-align:center;padding:8px 0 4px">
+  數值會即時更新。截圖給 Claude 即可。
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;width:1px;top:0;left:0';
+  document.body.appendChild(probe);
+  const px = css => { probe.style.height = css; return Math.round(probe.getBoundingClientRect().height); };
+
+  // safe-area 要靠實際元素量,env() 不能直接讀
+  const sa = document.createElement('div');
+  sa.style.cssText = 'position:fixed;visibility:hidden;top:0;left:0;' +
+    'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
+    'env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(sa);
+
+  function update() {
+    const cs = getComputedStyle(sa);
+    const ih = Math.round(window.innerHeight);
+    const vh = px('100vh'), svh = px('100svh'), lvh = px('100lvh'), dvh = px('100dvh');
+
+    $('ih').textContent  = ih + ' px';
+    $('vh').textContent  = vh + ' px';
+    $('svh').textContent = svh + ' px';
+    $('lvh').textContent = lvh + ' px';
+    $('dvh').textContent = dvh + ' px';
+
+    $('sat').textContent = cs.paddingTop;
+    $('sab').textContent = cs.paddingBottom;
+    $('sal').textContent = cs.paddingLeft;
+    $('sar').textContent = cs.paddingRight;
+
+    $('w').textContent   = Math.round(window.innerWidth) + ' px';
+    $('dpr').textContent = window.devicePixelRatio + '×';
+    $('scr').textContent = screen.width + ' × ' + screen.height;
+    $('dark').textContent = matchMedia('(prefers-color-scheme: dark)').matches ? '是' : '否';
+    $('rm').textContent   = matchMedia('(prefers-reduced-motion: reduce)').matches ? '是' : '否';
+    $('hov').textContent  = matchMedia('(hover: none)').matches ? '是' : '否（有滑鼠）';
+    $('ua').textContent   = navigator.userAgent;
+    $('stamp').textContent = new Date().toLocaleString('zh-TW');
+
+    // 模式判定
+    const standaloneMQ = matchMedia('(display-mode: standalone)').matches;
+    const navStandalone = navigator.standalone === true;
+    const el = $('mode');
+    if (standaloneMQ || navStandalone) {
+      el.className = 'verdict ok';
+      el.textContent = '✅ standalone 模式（從主畫面開啟，無網址列）'
+        + (svh === lvh ? '　svh = lvh，符合預期' : '　⚠️ 但 svh ≠ lvh，異常');
+    } else {
+      el.className = 'verdict warn';
+      el.textContent = '🌐 一般 Safari 分頁（有網址列）　網址列高度約 '
+        + (lvh - svh) + ' px';
+    }
+  }
+
+  update();
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  setInterval(update, 400);
+</script>
