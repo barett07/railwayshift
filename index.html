@@ -44,7 +44,7 @@
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','PingFang TC','Noto Sans TC',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','PingFang TC','Noto Sans TC',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100dvh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 
 /* NAV — 毛玻璃頂欄 + 底部浮動 Tab Bar */
 .topbar{background:var(--bg);border-bottom:1px solid transparent;transition:border-color .3s;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;height:54px}
@@ -118,13 +118,13 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 /* MODAL — 桌面置中對話框；手機改為底部彈簧面板（JS 彈簧驅動） */
 .overlay{position:fixed;inset:0;background:var(--dim);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .25s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rad);padding:22px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(0,0,0,.6);transform:translateY(10px);transition:transform .2s;max-height:92vh;overflow-y:auto;overscroll-behavior:contain}
+.modal{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rad);padding:22px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(0,0,0,.6);transform:translateY(10px);transition:transform .2s;max-height:92svh;overflow-y:auto;overscroll-behavior:contain}
 .overlay.open .modal{transform:translateY(0)}
 .modal-wide{max-width:620px}
 .modal-grab{display:none}
 @media(max-width:640px){
   .overlay{align-items:flex-end;padding:0}
-  .modal,.modal-wide{max-width:none;border:none;border-top:1px solid var(--glass-edge);border-radius:22px 22px 0 0;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);padding:8px 20px calc(20px + env(safe-area-inset-bottom));max-height:92vh;transition:none;transform:translateY(105%);will-change:transform}
+  .modal,.modal-wide{max-width:none;border:none;border-top:1px solid var(--glass-edge);border-radius:22px 22px 0 0;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);padding:8px 20px calc(20px + env(safe-area-inset-bottom));max-height:92svh;transition:none;transform:translateY(105%);will-change:transform}
   .overlay.open .modal{transform:translateY(105%)}
   .modal-grab{display:block;width:38px;height:5px;border-radius:999px;background:var(--tx3);opacity:.55;margin:6px auto 14px;cursor:grab;touch-action:none}
 }
@@ -306,7 +306,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
 /* TDX 車次 picker（疊在 shift 編輯 Modal 之上的小視窗） */
 .tdx-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
 .tdx-picker-overlay.open{display:flex}
-.tdx-picker-box{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rad);padding:18px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.tdx-picker-box{background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--rad);padding:18px;width:100%;max-width:440px;max-height:90svh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
 .tdx-picker-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--acc)}
 .tdx-pick{width:100%;text-align:left;background:var(--s2);border:1px solid var(--bdr2);padding:10px 12px;border-radius:var(--rad-s);color:var(--tx);display:flex;flex-direction:column;gap:3px;cursor:pointer;font-family:inherit;font-size:13px}
 .tdx-pick:hover{background:var(--s3);border-color:var(--acc)}
@@ -391,7 +391,7 @@ button:focus-visible,.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-vis
   <div class="loading-txt" id="loadingTxt">連線中...</div>
 </div>
 
-<div id="app" class="app-hidden" style="flex-direction:column;min-height:100vh">
+<div id="app" class="app-hidden" style="flex-direction:column;min-height:100dvh">
   <div class="topbar">
     <div class="brand">🚆 <span>鐵路輪班小幫手</span></div>
     <div class="status-wrap">
@@ -1885,7 +1885,7 @@ function _renderTdxBatchDiff(){
       <b style="color:var(--cyan)">${changedCount}</b> 項有變動（預設已勾選）
       ${errCount?`，<b style="color:var(--r)">${errCount}</b> 項失敗`:''}。
     </div>
-    <div style="overflow:auto;max-height:55vh;border:1px solid var(--bdr);border-radius:var(--rad-s)">
+    <div style="overflow:auto;max-height:55svh;border:1px solid var(--bdr);border-radius:var(--rad-s)">
       <table class="tdx-diff-table">
         <thead><tr>
           <th style="width:50px;text-align:center"><input type="checkbox" id="tdxBatchHeadCb" onchange="_tdxBatchToggleAll()" title="全選 / 取消全選" style="cursor:pointer"></th>
@@ -2350,7 +2350,7 @@ function doCheckSchedule(){
     </div>`;
   }else{
     body=`<div style="font-size:13px;color:var(--r);font-weight:700;margin-bottom:12px">⚠ 發現 ${errors.length} 天有差異</div>
-      <div style="display:flex;flex-direction:column;gap:7px;max-height:55vh;overflow-y:auto">
+      <div style="display:flex;flex-direction:column;gap:7px;max-height:55svh;overflow-y:auto">
         ${errors.map(err=>`
           <div style="background:var(--r-d);border:1px solid rgba(239,68,68,.2);border-radius:var(--rad-s);padding:9px 12px">
             <div style="font-size:12px;font-weight:700;margin-bottom:2px">${year}/${p2(month)}/${p2(err.d)}（${wd(err.ds)}）</div>

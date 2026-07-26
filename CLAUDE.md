@@ -47,10 +47,13 @@
 6. **`isOvernight` 欄位不可信**(匯入時一律 false),跨夜判斷用 `endTime <= startTime`
 7. **Edge Function 一律用 `./deploy.sh` 部署**(verify_jwt 已寫死在 `supabase/config.toml`,腳本含部署後自動驗證);避免用 MCP 部署,其 verify_jwt 預設 true 會靜默重置(→ `docs/backend.md`)
 8. TDX 站名用「臺」不用「台」,必須與 `STATION_MAP` key 完全一致(→ `docs/tdx.md`)
+9. **對比度須過 WCAG AA**(按鈕文字、表單標籤、placeholder、focus 框、錯誤訊息都算);**不要用 `vh`**:版面高度(`min-height`)用 `dvh`、彈窗/捲動區上限(`max-height`)用 `svh`(iOS Safari 網址列);**不用純黑 `#000` / 純白 `#fff`**,改用 off-black / off-white
+10. **畫面上的數字一律來自真實資料**;示範/假資料必須明顯標示,不可混充真實數據。**空狀態、載入中、錯誤狀態都要有畫面**,不能空白
 
 ## ✅ 改完自檢(交付前逐條確認)
 
 - 改了 CSS?→ 新增的 `:hover` 都加進 reset 區塊了;input 字體 ≥ 16px;觸控目標 ≥ 40px
+- 改了畫面?→ 對比度過 WCAG AA;沒有裸 `vh`(min-height→`dvh`、max-height→`svh`);沒有純黑純白;空/載入中/錯誤狀態都有畫面;數字都是真的
 - 改了 innerHTML?→ 使用者資料都套了 `escapeHtml()`
 - 動了班次欄位?→ 沒碰 `depTrain` / `arrTrain`
 - 改了 Edge Function?→ 用 `./deploy.sh` 部署且驗證全綠
@@ -59,7 +62,7 @@
 ## 協作規則
 
 - **寫任何程式碼前**,先與 Stan 討論方向,等 Stan 說「開始生成」才動手,不可推測性實作
-- **發布三步驟,不可跳過**:1. 網頁預覽讓 Stan 確認 → 2. Stan OK 後才 `git add` + `git commit` → 3. Stan 明確說「推上去」才 `git push`
+- **發布三步驟,不可跳過**:1. 本地預覽讓 Stan 確認 → 2. Stan OK 後才 `git add` + `git commit` → 3. Stan 明確說「推上去」才 `git push`
 
 ## 部署
 
