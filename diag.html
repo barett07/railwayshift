@@ -52,8 +52,10 @@
   <div class="row"><span class="k">100svh 最小</span><span class="v" id="svh">–</span></div>
   <div class="row"><span class="k">100lvh 最大</span><span class="v" id="lvh">–</span></div>
   <div class="row"><span class="k">100dvh 當下</span><span class="v" id="dvh">–</span></div>
-  <div class="hint">standalone 模式沒有網址列,四個數值應該相同。<br>
-    在 Safari 開則 svh &lt; lvh,差額就是網址列高度。</div>
+  <div class="hint"><b>兩種模式下 vh 都不等於可見高度,都不該用。</b><br>
+    Safari 分頁:差額 = 網址列高度(實測約 40px)。<br>
+    standalone:差額 = 狀態列高度(實測約 62px,更大)。<br>
+    一律 min-height 用 dvh、max-height 用 svh。</div>
 </div>
 
 <div class="card">
@@ -128,14 +130,15 @@
     const standaloneMQ = matchMedia('(display-mode: standalone)').matches;
     const navStandalone = navigator.standalone === true;
     const el = $('mode');
+    const gap = lvh - svh;
     if (standaloneMQ || navStandalone) {
       el.className = 'verdict ok';
-      el.textContent = '✅ standalone 模式（從主畫面開啟，無網址列）'
-        + (svh === lvh ? '　svh = lvh，符合預期' : '　⚠️ 但 svh ≠ lvh，異常');
+      el.textContent = '✅ standalone 模式（從主畫面開啟）　'
+        + 'vh 比可見高度多 ' + gap + ' px（狀態列）';
     } else {
       el.className = 'verdict warn';
-      el.textContent = '🌐 一般 Safari 分頁（有網址列）　網址列高度約 '
-        + (lvh - svh) + ' px';
+      el.textContent = '🌐 一般 Safari 分頁　'
+        + 'vh 比可見高度多 ' + gap + ' px（網址列）';
     }
   }
 
