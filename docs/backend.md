@@ -25,6 +25,7 @@
 
 ### Supabase Secret
 - `WRITE_SECRET`:寫入密碼,Stan 自行設定,不在程式碼裡
+- **本專案專用,與 railwayroster 各自獨立**(2026-07-29 分離,原本兩站共用同一組)。改密碼一律走 Supabase Dashboard 的 Functions → Secrets 網頁介面,不要用 CLI 指令(密碼會留在終端機與對話紀錄裡)
 
 ## Apple Calendar Integration(iCal)
 
