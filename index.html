@@ -568,7 +568,7 @@ function getShiftImageSrc(shiftOrName){
 let dbReady = false;
 let ST = { shifts: [], segments: [], exceptions: {}, commuteConfig: null };
 let calY = new Date().getFullYear(), calM = new Date().getMonth() + 1;
-let shiftFilter = 'all', parsedXLSX = null, homeOffset = 0, _csData = null;
+let shiftFilter = 'all', parsedXLSX = null, homeOffset = 0, _csData = null, _csErrs = [];
 let _editSegId = '', _editCycle = [];
 
 // ══════════════════════════════════════════════
@@ -2356,14 +2356,34 @@ function doCheckSchedule(){
       }
     }
     // 手動改過（exceptions）的日子與班表不同 → 列入「自己調整過的日子」；沒改過的才紅框報錯
-    if(mismatch)(appInfo.isEx?adjusted:errors).push({d,ds,reason});
+    if(mismatch){
+      if(appInfo.isEx)adjusted.push({d,ds,reason});
+      else{
+        // 可一鍵套用的：班號（數字＋英文字尾，如 513V）、例假、休班；國例/病假等不認得的字不給按鈕
+        const fix=xlType!=='work'?{type:xlType}:/^\d+[A-Z]*$/.test(xlShift)?{type:'work',shiftId:xlShift}:null;
+        errors.push({d,ds,reason,fix});
+      }
+    }
   }
+  _csErrs=errors;
+  const canEdit=document.getElementById('app').classList.contains('edit-mode');
+  const fixable=errors.filter(e=>e.fix).length;
 
-  const dayItem=(it,bg,bdr)=>`
-          <div style="background:${bg};border:1px solid ${bdr};border-radius:var(--rad-s);padding:9px 12px">
-            <div style="font-size:12px;font-weight:700;margin-bottom:2px">${year}/${p2(month)}/${p2(it.d)}（${wd(it.ds)}）</div>
-            <div style="font-size:12px;color:var(--tx2)">${it.reason}</div>
+  const dayItem=(it,bg,bdr,action='')=>`
+          <div style="background:${bg};border:1px solid ${bdr};border-radius:var(--rad-s);padding:9px 12px;display:flex;align-items:center;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;margin-bottom:2px">${year}/${p2(month)}/${p2(it.d)}（${wd(it.ds)}）</div>
+              <div style="font-size:12px;color:var(--tx2)">${escapeHtml(it.reason)}</div>
+            </div>${action}
           </div>`;
+  const fixBtn=(it,i)=>{
+    if(!canEdit||!it.fix)return '';
+    const noShift=it.fix.shiftId&&!getShift(it.fix.shiftId);
+    return `<div style="flex:0 0 auto;text-align:right">
+      <button class="btn-sm" style="flex:0 0 auto;padding:6px 14px" onclick="applyCsFix(${i})">套用</button>
+      ${noShift?`<div style="font-size:11px;color:var(--tx);margin-top:4px">App 尚未建檔此班</div>`:''}
+    </div>`;
+  };
   const adjustedHtml=adjusted.length?`
       <div style="font-size:13px;color:var(--tx2);font-weight:700;margin:${errors.length?'16px':'0'} 0 8px">✎ 你自己調整過的日子（${adjusted.length} 天，不算錯）</div>
       <div style="display:flex;flex-direction:column;gap:7px">${adjusted.map(it=>dayItem(it,'var(--s2)','rgba(10,132,255,.35)')).join('')}</div>`:'';
@@ -2375,14 +2395,34 @@ function doCheckSchedule(){
       <div style="font-size:12px;color:var(--tx3);margin-top:5px">${year}年${month}月共 ${totalDays} 天，${adjusted.length?'沒有排錯的班':'與班表完全吻合'}</div>
     </div>${adjustedHtml?`<div style="max-height:40svh;overflow-y:auto">${adjustedHtml}</div>`:''}`;
   }else{
-    body=`<div style="font-size:13px;color:var(--r);font-weight:700;margin-bottom:12px">⚠ 發現 ${errors.length} 天有差異</div>
+    body=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+        <div style="font-size:13px;color:var(--r);font-weight:700">⚠ 發現 ${errors.length} 天有差異</div>
+        ${canEdit&&fixable>1?`<button class="btn-sm" style="flex:0 0 auto;padding:6px 14px" onclick="applyCsAll()">全部套用（${fixable} 天）</button>`:''}
+      </div>
       <div style="max-height:55svh;overflow-y:auto">
-        <div style="display:flex;flex-direction:column;gap:7px">${errors.map(it=>dayItem(it,'var(--r-d)','rgba(239,68,68,.2)')).join('')}</div>
+        <div style="display:flex;flex-direction:column;gap:7px">${errors.map((it,i)=>dayItem(it,'var(--r-d)','rgba(239,68,68,.2)',fixBtn(it,i))).join('')}</div>
         ${adjustedHtml}
       </div>`;
   }
   setModal(`${worker.name} — ${year}年${month}月核對結果`,body,
     [{label:'關閉',cls:'btn-secondary',fn:'closeM()'}],true);
+}
+// 把紅框差異改成班表上的班：存成當天的手動修改（與日曆手動改班相同），之後會移到「自己調整過的日子」
+function applyCsFix(i){ applyCsFixes([_csErrs[i]]); }
+function applyCsAll(){
+  const list=_csErrs.filter(e=>e.fix);
+  if(!list.length||!confirm(`把 ${list.length} 天改成班表上的班？`))return;
+  applyCsFixes(list);
+}
+function applyCsFixes(list){
+  const exData=f=>({type:f.type,shiftId:f.shiftId||null,note:'',customStart:'',customBoard:'',customAlight:''});
+  // 前面幾筆先寫進記憶體，最後一筆交給 pushException 一次存本機＋雲端
+  list.slice(0,-1).forEach(e=>{ST.exceptions[e.ds]=exData(e.fix);});
+  const last=list[list.length-1];
+  pushException(last.ds,exData(last.fix)).then(st=>{
+    renderHome();renderCal();calcLeaveStats();doCheckSchedule();
+    toastSaved(st,`已套用 ${list.length} 天`);
+  });
 }
 
 // ══════════════════════════════════════════════

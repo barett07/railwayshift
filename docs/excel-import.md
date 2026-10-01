@@ -30,6 +30,7 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 | App type `leave`/`rest`/`standby` (no shift) | — | never flagged for rest/off Excel days |
 
 - **手動改過的日子（`ST.exceptions` 有該日，`getDayInfo` 回 `isEx:true`）與班表不同 → 一律列入「你自己調整過的日子（不算錯）」，不紅框**；只有沒手動改過的差異才紅框報錯（2026-10-01 Stan 定的規則）。休班 vs 特休/備勤：手動改過的列入調整清單，沒改過的照舊不報。 Card uses `--s2` bg + blue border: `--tx2` on `--b-d` is 4.47 in light mode, fails AA
+- **套用按鈕（2026-10-01）**：管理模式（`#app.edit-mode`）下，紅框可一鍵改成班表上的班（`applyCsFix` / `applyCsAll`），存成 `ST.exceptions`，和日曆手動改班走同一條 `pushException`。只套班號（`/^\d+[A-Z]*$/`，如 513V）、例假、休班；國例/病假等不認得的字不給按鈕。custom 時間存空字串，顯示時自動帶工作班預設。批次套用：前幾筆先寫進 `ST.exceptions`，最後一筆用 `pushException` 一次同步。套用後該日與班表一致，紅藍兩區都不再出現
 - ⚠️ 已知未處理：Excel 也會出現 `國例`、`休假`、`病假`、`日勤`、`日班`、`乙1`/`乙2` 等非班號值，目前都被當成班號比對，本人列出現時會誤報
 
 ## 3. Rotation Schedule Import(`openImportRotation`)
