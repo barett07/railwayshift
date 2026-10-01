@@ -2251,15 +2251,20 @@ function parseCheckXLSX(e){
 
       // 3. 擷取人員班表（日期標題列之後）
       const maxDay=daysInMonth(year,month);
+      // 每頁都重複一次日期表頭；小月第一頁可能少了「31」，hrIdx 會落在第二頁 → 從第一個日期 1–28 對得上的列開始讀
+      const isHeaderRow=row=>{for(let d=1;d<=28;d++)if(Number(row[dateColMap[d]])!==d)return false;return true;};
+      const firstHr=rows.findIndex(isHeaderRow);
       const workers=[];
-      for(let r=hrIdx+1;r<rows.length;r++){
+      for(let r=firstHr+1;r<rows.length;r++){
         const row=rows[r];
+        if(isHeaderRow(row))continue;
         // 姓名可能含換行（name\nid 在同一 cell）
         const rawName=String(row[0]||'').trim();
         if(!rawName)continue;
         const nameParts=rawName.split(/[\n\r]/);
         const name=nameParts[0].trim();
         if(!name)continue;
+        if(name.replace(/\s/g,'')==='姓名')continue;
         // 跳過星期子標題列
         if(/^[日一二三四五六衛接\s]+$/.test(name))continue;
         // 跳過注意事項列（每區塊結尾），繼續讀下一區塊
@@ -2270,7 +2275,9 @@ function parseCheckXLSX(e){
           if(dateColMap[d]!==undefined&&String(row[dateColMap[d]]||'').trim()){hasData=true;break;}
         }
         if(!hasData)continue;
-        const id=nameParts[1]?.trim()||String(row[1]||'').trim();
+        // 員工編號以 B 欄為準；姓名格第二行可能是備註（如「R、PP」）
+        const colB=String(row[1]||'').trim();
+        const id=/^\d+$/.test(colB)?colB:(nameParts[1]?.trim()||colB);
         const days={};
         for(let d=1;d<=maxDay;d++){
           if(dateColMap[d]===undefined)continue;

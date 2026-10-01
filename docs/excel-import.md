@@ -14,8 +14,9 @@ Imports the company's monthly crew schedule Excel to verify against the app's co
 
 **Parsing logic:**
 - Year/month auto-detected from title rows (民國 3-digit year → +1911; or Gregorian 4-digit; fallback: filename pattern)
-- Date header row = row with the most cells containing integers 1–31 (threshold: ≥20 hits)
-- Name in col 0 (may include `\n` + ID in same cell), ID in col 1
+- Date column map = row with the most cells containing integers 1–31 (threshold: ≥20 hits)
+- Reading starts after the **first** row whose days 1–28 match that map; every page repeats the header, so all such rows (and `姓  名` rows) are skipped. ⚠️ 2026-09-30: 115 年 9 月第一頁表頭只到 30、第二頁到 31 → 舊邏輯從第二頁開始讀，第一頁（含本人）整頁漏掉，跳「找不到本人資料」
+- Name in col 0; ID = col 1 when it is all digits, else the 2nd line of the name cell (that line can be a note like `R、PP`, so col 1 wins)
 - Skips rows with no shift data (weekday sub-headers, ID-only rows)
 - Stops at footer notes matching `/^[123][\.\、]|^注意/`
 - 衛接 (carry-over) column excluded automatically (non-numeric label)
