@@ -2313,7 +2313,7 @@ function doCheckSchedule(){
   if(!worker){toast('在班表中找不到本人資料','err');return;}
   const {year,month}=_csData;
   const totalDays=daysInMonth(year,month);
-  const errors=[];
+  const errors=[],adjusted=[];
   const AL={work:'工作班',off:'例假',rest:'休班',leave:'特休',standby:'備勤',unknown:'未知'};
 
   for(let d=1;d<=totalDays;d++){
@@ -2350,26 +2350,35 @@ function doCheckSchedule(){
       }else if(appType==='off'){
         mismatch=true;
         reason=`班表：休班，App：例假`;
+      }else if(appType==='leave'||appType==='standby'){
+        // 休班 vs 特休/備勤：沒手動改過的不報（原規則），手動改過的列入調整清單
+        if(appInfo.isEx){mismatch=true;reason=`班表：休班，App：${AL[appType]}`;}
       }
     }
-    if(mismatch)errors.push({d,ds,reason});
+    // 手動改過（exceptions）的日子與班表不同 → 列入「自己調整過的日子」；沒改過的才紅框報錯
+    if(mismatch)(appInfo.isEx?adjusted:errors).push({d,ds,reason});
   }
 
+  const dayItem=(it,bg,bdr)=>`
+          <div style="background:${bg};border:1px solid ${bdr};border-radius:var(--rad-s);padding:9px 12px">
+            <div style="font-size:12px;font-weight:700;margin-bottom:2px">${year}/${p2(month)}/${p2(it.d)}（${wd(it.ds)}）</div>
+            <div style="font-size:12px;color:var(--tx2)">${it.reason}</div>
+          </div>`;
+  const adjustedHtml=adjusted.length?`
+      <div style="font-size:13px;color:var(--tx2);font-weight:700;margin:${errors.length?'16px':'0'} 0 8px">✎ 你自己調整過的日子（${adjusted.length} 天，不算錯）</div>
+      <div style="display:flex;flex-direction:column;gap:7px">${adjusted.map(it=>dayItem(it,'var(--s2)','rgba(10,132,255,.35)')).join('')}</div>`:'';
   let body;
   if(!errors.length){
-    body=`<div style="text-align:center;padding:28px 0">
+    body=`<div style="text-align:center;padding:28px 0${adjusted.length?' 16px':''}">
       <div style="font-size:36px;margin-bottom:10px">✅</div>
       <div style="font-size:15px;font-weight:700;color:var(--g)">全部正確！</div>
-      <div style="font-size:12px;color:var(--tx3);margin-top:5px">${year}年${month}月共 ${totalDays} 天，與班表完全吻合</div>
-    </div>`;
+      <div style="font-size:12px;color:var(--tx3);margin-top:5px">${year}年${month}月共 ${totalDays} 天，${adjusted.length?'沒有排錯的班':'與班表完全吻合'}</div>
+    </div>${adjustedHtml?`<div style="max-height:40svh;overflow-y:auto">${adjustedHtml}</div>`:''}`;
   }else{
     body=`<div style="font-size:13px;color:var(--r);font-weight:700;margin-bottom:12px">⚠ 發現 ${errors.length} 天有差異</div>
-      <div style="display:flex;flex-direction:column;gap:7px;max-height:55svh;overflow-y:auto">
-        ${errors.map(err=>`
-          <div style="background:var(--r-d);border:1px solid rgba(239,68,68,.2);border-radius:var(--rad-s);padding:9px 12px">
-            <div style="font-size:12px;font-weight:700;margin-bottom:2px">${year}/${p2(month)}/${p2(err.d)}（${wd(err.ds)}）</div>
-            <div style="font-size:12px;color:var(--tx2)">${err.reason}</div>
-          </div>`).join('')}
+      <div style="max-height:55svh;overflow-y:auto">
+        <div style="display:flex;flex-direction:column;gap:7px">${errors.map(it=>dayItem(it,'var(--r-d)','rgba(239,68,68,.2)')).join('')}</div>
+        ${adjustedHtml}
       </div>`;
   }
   setModal(`${worker.name} — ${year}年${month}月核對結果`,body,
